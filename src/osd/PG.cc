@@ -1024,15 +1024,8 @@ bool PG::calc_acting(int& newest_update_osd_id, vector<int>& want) const
 	     << " selected as primary instead" << dendl;
     primary = newest_update_osd;
   } else {
-    map<int, pg_info_t> complete_infos;
-    for (map<int, pg_info_t>::iterator i = all_info.begin();
-	 i != all_info.end();
-	 ++i) {
-      if (!i->second.is_incomplete())
-	complete_infos.insert(*i);
-    }
-    primary = find_best_info(complete_infos);
-    if (primary == complete_infos.end() ||
+    primary = find_best_info(all_info);
+    if (primary == all_info.end() ||
 	primary->second.last_update < newest_update_osd->second.log_tail) {
       dout(10) << "calc_acting no acceptable primary, reverting to up " << up << dendl;
       want = up;
