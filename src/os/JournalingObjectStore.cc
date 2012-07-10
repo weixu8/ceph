@@ -123,25 +123,9 @@ uint64_t JournalingObjectStore::op_apply_start(uint64_t op)
 uint64_t JournalingObjectStore::_op_apply_start(uint64_t op) 
 {
   assert(journal_lock.is_locked());
-
-  // if we ops are blocked, or there are already people (left) in
-  // line, get in line.
-  if (blocked || !ops_apply_blocked.empty()) {
-    Cond cond;
-    ops_apply_blocked.push_back(&cond);
-    dout(10) << "op_apply_start " << op << " blocked (getting in back of line)" << dendl;
-    // sleep until we are not blocked AND we are at the front of line
-    while (blocked || ops_apply_blocked.front() != &cond)
-      cond.Wait(journal_lock);
-    dout(10) << "op_apply_start " << op << " woke (at front of line)" << dendl;
-    ops_apply_blocked.pop_front();
-    if (!ops_apply_blocked.empty()) {
-      dout(10) << "op_apply_start " << op << "  ...and kicking next in line" << dendl;
-      ops_apply_blocked.front()->Signal();
-    }
-  }
-  dout(10) << "op_apply_start " << op << " open_ops " << open_ops << " -> " << (open_ops+1) << dendl;
-  assert(!blocked);
+  dout(10) << "op_apply_start" << op << " open_ops " << open_ops << " -> " << (open_ops+1) << dendl;
+  while (blocked)
+    cond.Wait(journal_lock);
   open_ops++;
   return op;
 }
@@ -186,26 +170,6 @@ void JournalingObjectStore::op_submit_finish(uint64_t op)
 
 // ------------------------------------------
 
-/*
- * this may (will generally) get called by an op_queue thread holding
- * an open_ops reference.  it should block only long enough for the
- * commit to _start_ waiting for open_ops, but not longer or else we
- * will deadlock.
- *
- * caller must hold journal_lock.
- */
-void JournalingObjectStore::_trigger_commit(uint64_t seq)
-{
-  assert(journal_lock.is_locked());
-  dout(10) << "trigger_commit " << seq << dendl;
-  force_commit = true;
-  while (!blocked && committing_seq < seq) {
-    dout(20) << "trigger_commit not blocked and seq " << seq << " > committing " << committing_seq << dendl;
-    cond.Wait(journal_lock);
-  }
-  dout(10) << "trigger_commit triggered, will commit something >= " << seq << dendl;
-}
-
 bool JournalingObjectStore::commit_start() 
 {
   bool ret = false;
@@ -215,7 +179,6 @@ bool JournalingObjectStore::commit_start()
 	   << ", applied_seq " << applied_seq
 	   << ", committed_seq " << committed_seq << dendl;
   blocked = true;
-  cond.Signal();  // for trigger_commit() caller
   while (open_ops > 0) {
     dout(10) << "commit_start blocked, waiting for " << open_ops << " open ops" << dendl;
     cond.Wait(journal_lock);
@@ -226,8 +189,7 @@ bool JournalingObjectStore::commit_start()
   if (applied_seq == committed_seq && !force_commit) {
     dout(10) << "commit_start nothing to do" << dendl;
     blocked = false;
-    if (!ops_apply_blocked.empty())
-      ops_apply_blocked.front()->Signal();
+    cond.Signal();
     assert(commit_waiters.empty());
     goto out;
   }
@@ -256,8 +218,7 @@ void JournalingObjectStore::commit_started()
   // allow new ops. (underlying fs should now be committing all prior ops)
   dout(10) << "commit_started committing " << committing_seq << ", unblocking" << dendl;
   blocked = false;
-  if (!ops_apply_blocked.empty())
-    ops_apply_blocked.front()->Signal();
+  cond.Signal();
 }
 
 void JournalingObjectStore::commit_finish()
