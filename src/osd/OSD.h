@@ -24,6 +24,7 @@
 #include "common/Timer.h"
 #include "common/WorkQueue.h"
 #include "common/LogClient.h"
+#include "common/Finisher.h"
 
 #include "os/ObjectStore.h"
 #include "OSDCaps.h"
@@ -350,6 +351,43 @@ private:
   deque<PG*> op_queue;
   int op_queue_len;
 
+  Finisher filestore_queue;
+  class C_DoQueue : public Context {
+    ObjectStore *store;
+    ObjectStore::Sequencer *osr;
+    list<ObjectStore::Transaction*> tls;
+    OpRequestRef op;
+    Context *onapplied;
+    Context *oncommit;
+    Context *on_applied_sync;
+  public:
+    C_DoQueue(ObjectStore *store,
+	      ObjectStore::Sequencer *osr,
+	      const list<ObjectStore::Transaction*> &tls,
+	      OpRequestRef op,
+	      Context *onapplied = 0,
+	      Context *oncommit = 0,
+	      Context *on_applied_sync = 0)
+      : store(store), osr(osr), tls(tls), op(op), onapplied(onapplied),
+	oncommit(oncommit), on_applied_sync(on_applied_sync) {}
+    void finish(int r) {
+      store->queue_transactions(osr, tls, onapplied, oncommit, on_applied_sync,
+				op);
+    }
+  };
+
+  void queue_for_filestore(ObjectStore::Sequencer *osr,
+			   const list<ObjectStore::Transaction*> &tls,
+			   OpRequestRef op,
+			   Context *onapplied = 0,
+			   Context *oncommit = 0,
+			   Context *on_applied_sync = 0) {
+    filestore_queue.queue(
+      new C_DoQueue(store, osr, tls, op, onapplied, oncommit,
+		    on_applied_sync)
+      );
+  }
+
   struct OpWQ : public ThreadPool::WorkQueue<PG> {
     OSD *osd;
     OpWQ(OSD *o, time_t ti, ThreadPool *tp)
@@ -374,6 +412,10 @@ private:
   void enqueue_op(PG *pg, OpRequestRef op);
   void requeue_ops(PG *pg, list<OpRequestRef>& ls);
   void dequeue_op(PG *pg);
+
+  struct TransactionCtx {
+
+  };
   static void static_dequeueop(OSD *o, PG *pg) {
     o->dequeue_op(pg);
   };

@@ -644,6 +644,7 @@ OSD::OSD(int id, Messenger *internal_messenger, Messenger *external_messenger,
   finished_lock("OSD::finished_lock"),
   admin_ops_hook(NULL),
   op_queue_len(0),
+  filestore_queue(g_ceph_context),
   op_wq(this, g_conf->osd_op_thread_timeout, &op_tp),
   map_lock("OSD::map_lock"),
   peer_map_epoch_lock("OSD::peer_map_epoch_lock"),
@@ -734,6 +735,8 @@ public:
 int OSD::init()
 {
   Mutex::Locker lock(osd_lock);
+
+  filestore_queue.start();
 
   timer.init();
   watch_timer.init();
@@ -933,6 +936,7 @@ void OSD::suicide(int exitcode)
 
 int OSD::shutdown()
 {
+  filestore_queue.stop();
   g_ceph_context->_conf->set_val("debug_osd", "100");
   g_ceph_context->_conf->set_val("debug_journal", "100");
   g_ceph_context->_conf->set_val("debug_filestore", "100");
