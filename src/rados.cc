@@ -1754,7 +1754,7 @@ int main(int argc, const char **argv)
       opts["target_locator"] = val;
     } else if (ceph_argparse_witharg(args, i, &val, "--category", (char*)NULL)) {
       opts["category"] = val;
-    } else if (ceph_argparse_witharg(args, i, &val, "-t", "--concurrent-ios", (char*)NULL)) {
+    } else if (ceph_argparse_witharg(args, i, &val, "--concurrent-ios", (char*)NULL)) {
       opts["concurrent-ios"] = val;
     } else if (ceph_argparse_witharg(args, i, &val, "--block-size", (char*)NULL)) {
       opts["block-size"] = val;
