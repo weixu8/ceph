@@ -1544,7 +1544,7 @@ int Pipe::read_message(Message **pm)
   if (!sig_error.empty) {
 #if 0
     ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
-endif
+#endif
     ret = -EINVAL;
     goto out_dethrottle;
   } else {
