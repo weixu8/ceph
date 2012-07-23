@@ -25,6 +25,7 @@
 
 // Below included to get encode_encrypt(); That probably should be in Crypto.h, instead
 
+#include "auth/Crypto.h"
 #include "auth/cephx/CephxProtocol.h"
 
 #define dout_subsys ceph_subsys_ms
@@ -137,16 +138,6 @@ void Pipe::queue_received(Message *m, int priority)
 {
   assert(pipe_lock.is_locked());
   in_q->queue(m, priority);
-}
-
-// Duplicate of code from rados.cc.  Maybe better to include that? PLR
-
-uint64_t Pipe::get_random(uint64_t min_val, uint64_t max_val)
-{
-  uint64_t r;
-  get_random_bytes((char *)&r, sizeof(r));
-  r = min_val + r % (max_val - min_val + 1);
-  return r;
 }
 
 int Pipe::accept()
