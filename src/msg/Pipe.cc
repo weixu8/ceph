@@ -23,6 +23,10 @@
 
 #include "common/debug.h"
 
+// Below included to get encode_encrypt(); That probably should be in Crypto.h, instead
+
+#include "auth/cephx/CephxProtocol.h"
+
 #define dout_subsys ceph_subsys_ms
 
 #undef dout_prefix
@@ -135,7 +139,15 @@ void Pipe::queue_received(Message *m, int priority)
   in_q->queue(m, priority);
 }
 
+// Duplicate of code from rados.cc.  Maybe better to include that? PLR
 
+uint64_t Pipe::get_random(uint64_t min_val, uint64_t max_val)
+{
+  uint64_t r;
+  get_random_bytes((char *)&r, sizeof(r));
+  r = min_val + r % (max_val - min_val + 1);
+  return r;
+}
 
 int Pipe::accept()
 {
@@ -1045,7 +1057,7 @@ void Pipe::was_session_reset()
   msgr->dispatch_queue.queue_remote_reset(connection_state);
 
 // Set out_seq to a random value, so CRC won't be predictable
-  out_seq = get_random(0,sizeof(uint64_t);
+  out_seq = get_random(0,sizeof(uint64_t));
   in_seq = 0;
   connect_seq = 0;
 }
@@ -1529,8 +1541,8 @@ int Pipe::read_message(Message **pm)
 
   // Encrypt the buffer containing the checksums.
 
-  if (connection != NULL) {
-    encode_encrypt(bl_plaintext,connection->session_key,bl_ciphertext, sig_error);
+  if (connection_state != NULL) {
+    encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
   } else {
 #if 0
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
@@ -1541,7 +1553,7 @@ int Pipe::read_message(Message **pm)
 
   // If the encryption was error-free, grab the signature from the message and compare it.
 
-  if (!sig_error.empty) {
+  if (!sig_error.empty()) {
 #if 0
     ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
 #endif
@@ -1549,8 +1561,8 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   } else {
     __le64 sig1_check,sig2_check;
-    ::decode((__le64)sig1_check,bl_ciphertext);
-    ::decode((__le64)sig2_check,bl_ciphertext);
+    ::decode((ceph_le64)sig1_check,bl_ciphertext);
+    ::decode((ceph_le64)sig2_check,bl_ciphertext);
     if (sig1_check != footer.sig1 || sig2_check != footer.sig2) {
 #if 0
       ldout(msgr->cct, 0) << "message signature does not match" << dendl;
