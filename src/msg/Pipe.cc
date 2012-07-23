@@ -1355,6 +1355,8 @@ int Pipe::read_message(Message **pm)
   ceph_msg_header header; 
   ceph_msg_footer footer;
   __u32 header_crc;
+  bufferlist bl_plaintext,bl_ciphertext;
+  std::string sig_error;
   
   if (connection_state->has_feature(CEPH_FEATURE_NOSRCADDR)) {
     if (tcp_read(msgr->cct,  sd, (char*)&header, sizeof(header), msgr->timeout ) < 0)
@@ -1520,8 +1522,6 @@ int Pipe::read_message(Message **pm)
   //  since now we have the connection pointer.  PLR
   //
 
-  bufferlist bl_plaintext,bl_ciphertext;
-  std::string sig_error;
   ::encode((__le32)header.crc,bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
   ::encode((__le32)footer.middle_crc,bl_plaintext);
