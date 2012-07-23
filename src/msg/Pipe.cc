@@ -1560,10 +1560,13 @@ int Pipe::read_message(Message **pm)
     ret = -EINVAL;
     goto out_dethrottle;
   } else {
-    __le64 sig1_check,sig2_check;
-    ::decode((ceph_le64)sig1_check,bl_ciphertext);
-    ::decode((ceph_le64)sig2_check,bl_ciphertext);
-    if (sig1_check != footer.sig1 || sig2_check != footer.sig2) {
+    __le32 sig1_check,sig2_check,sig3_check,sig4_check;
+    ::decode((__le32)sig1_check,bl_ciphertext);
+    ::decode((__le32)sig2_check,bl_ciphertext);
+    ::decode((__le32)sig3_check,bl_ciphertext);
+    ::decode((__le32)sig4_check,bl_ciphertext);
+    if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
+	sig4_check != footer.sig4 ) {
 #if 0
       ldout(msgr->cct, 0) << "message signature does not match" << dendl;
 #endif
