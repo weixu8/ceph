@@ -435,11 +435,16 @@ void MonClient::_pick_new_mon()
   }
   cur_con = messenger->get_connection(monmap.get_inst(cur_mon));
 	
+#if 0
+/* I think this code is not required.  If it's added, stuff involving Cephx will need to
+  be included here, which is undesirable, if it's unnecessary.  For the moment, compile
+  this out.  If life is good during testing, get rid of it.  If not, fix it.
+*/
   // Set session key for connection, if not already set PLR
 
   if (cur_con != NULL && cur_con->session_key == 0) {
     // Get the right ticket handler, so we can extract the session key
-    if (auth != NULL && auth->get_protocol == CEPH_AUTH_CEPHX) {
+    if (auth && auth->get_protocol == CEPH_AUTH_CEPHX) {
       CephXTicketManager ticket_manager = auth->CephXTicketManager;
       CephXTicketHandler& ticket_handler = ticket_manager.get_handler(CEPH_ENTITY_TYPE_AUTH);
       // If there is a ticket handler for this auth type, get a pointer to its session key
@@ -448,6 +453,7 @@ void MonClient::_pick_new_mon()
       } 
     }
   }
+#endif
 
   ldout(cct, 10) << "_pick_new_mon picked mon." << cur_mon << " con " << cur_con
 		 << " addr " << cur_con->get_peer_addr()
