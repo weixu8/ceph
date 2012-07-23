@@ -1525,6 +1525,7 @@ int Pipe::read_message(Message **pm)
   //  structure attached to the pipe.  So we check the signature at this point, instead,
   //  since now we have the connection pointer.  PLR
   //
+#endif
 
   ::encode((__le32)header.crc,bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
@@ -1538,7 +1539,7 @@ int Pipe::read_message(Message **pm)
   } else {
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
     ret = -EINVAL;
-    goto out_dethrotttle;
+    goto out_dethrottle;
   }
 
   // If the encryption was error-free, grab the signature from the message and compare it.
@@ -1562,7 +1563,6 @@ int Pipe::read_message(Message **pm)
   }
 
   // If we got here, the signature checked.  PLR
-#endif
 
   message->set_throttler(policy.throttler);
 
