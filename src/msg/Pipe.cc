@@ -1527,6 +1527,7 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
+#if 0
   //
   //  decode_message() could not check the digital signature, since it does not have
   //  access to the session key for this connection, which is in the connection data
@@ -1544,9 +1545,7 @@ int Pipe::read_message(Message **pm)
   if (connection_state != NULL) {
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
   } else {
-#if 0
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
-#endif
     ret = -EINVAL;
     goto out_dethrotttle;
   }
@@ -1554,28 +1553,25 @@ int Pipe::read_message(Message **pm)
   // If the encryption was error-free, grab the signature from the message and compare it.
 
   if (!sig_error.empty()) {
-#if 0
     ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
-#endif
     ret = -EINVAL;
     goto out_dethrottle;
   } else {
-    __le32 sig1_check,sig2_check,sig3_check,sig4_check;
-    ::decode((__le32)sig1_check,bl_ciphertext);
-    ::decode((__le32)sig2_check,bl_ciphertext);
-    ::decode((__le32)sig3_check,bl_ciphertext);
-    ::decode((__le32)sig4_check,bl_ciphertext);
+    uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
+    ::decode(sig1_check,bl_ciphertext);
+    ::decode(sig2_check,bl_ciphertext);
+    ::decode(sig3_check,bl_ciphertext);
+    ::decode(sig4_check,bl_ciphertext);
     if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
 	sig4_check != footer.sig4 ) {
-#if 0
       ldout(msgr->cct, 0) << "message signature does not match" << dendl;
-#endif
       ret = -EINVAL;
       goto out_dethrottle;
     }
   }
 
   // If we got here, the signature checked.  PLR
+#endif
 
   message->set_throttler(policy.throttler);
 

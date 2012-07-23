@@ -143,6 +143,9 @@ using namespace std;
 
 #include "common/config.h"
 
+// Below included to get encode_encrypt(); That probably should be in Crypto.h, instead PLR
+#include "auth/cephx/CephxProtocol.h"
+
 #define DEBUGLVL  10    // debug level of output
 
 #define dout_subsys ceph_subsys_ms
@@ -167,15 +170,16 @@ void Message::encode(uint64_t features, bool datacrc)
     bufferlist bl_plaintext,bl_encrypted;
     ceph_msg_footer footer;
     std::string error;
-    ::encode((__le32)crc,bl_plaintext);
+    ::encode((__le32)header.crc,bl_plaintext);
     footer = get_footer();
     ::encode((__le32)footer.front_crc,bl_plaintext);
     ::encode((__le32)footer.middle_crc,bl_plaintext);
     ::encode((__le32)footer.data_crc,bl_plaintext);
     encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
-    if (!error.empty) {
-      ldout(cct,-1) << "error encrypting message signature: " << error << dendl;
-      ldout(cct, -1) << "no signature put on message" << dendl;
+    if (!error.empty()) {
+//	No context available here.  Need to figure out how to handle error msgs, then
+//     ldout(cct,-1) << "error encrypting message signature: " << error << dendl;
+//     ldout(cct, -1) << "no signature put on message" << dendl;
     } else {
       ::decode(footer.sig1,bl_encrypted);
       ::decode(footer.sig2,bl_encrypted);

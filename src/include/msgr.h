@@ -175,7 +175,7 @@ struct ceph_msg_footer {
 	__le32 front_crc, middle_crc, data_crc;
 	// sig1, sig2, sig3, sig4 hold the 128 bits of the digital signature for the message
 	// using 4 ints is stupid; once working, fix this.  PLR
-	uint32_t  sig1, sig2, sig3, sig4;
+	__le32  sig1, sig2, sig3, sig4;
 	__u8 flags;
 } __attribute__ ((packed));
 
