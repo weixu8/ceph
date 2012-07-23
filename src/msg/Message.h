@@ -154,7 +154,7 @@ struct Connection : public RefCountedObject {
   unsigned features;
   RefCountedObject *pipe;
 // session_key added for better authentication of ongoing connection messages PLR
-  CryptoKey session_key;
+  CryptoKey session_key();
 
   int rx_buffers_version;
   map<tid_t,pair<bufferlist,int> > rx_buffers;
