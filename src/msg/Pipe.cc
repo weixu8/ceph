@@ -1532,7 +1532,7 @@ int Pipe::read_message(Message **pm)
   if (connection != NULL) {
     encode_encrypt(bl_plaintext,connection->session_key,bl_ciphertext, sig_error);
   } else {
-    ldout(cct,0) << "No connection pointer for message signature check" << dendl;
+    ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
     ret = -EINVAL;
     goto out_dethrotttle;
   }
@@ -1540,7 +1540,7 @@ int Pipe::read_message(Message **pm)
   // If the encryption was error-free, grab the signature from the message and compare it.
 
   if (!sig_error.empty) {
-    ldout(cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
+    ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
     ret = -EINVAL;
     goto out_dethrottle;
   } else {
@@ -1548,7 +1548,7 @@ int Pipe::read_message(Message **pm)
     ::decode((__le64)sig1_check,bl_ciphertext);
     ::decode((__le64)sig2_check,bl_ciphertext);
     if (sig1_check != footer.sig1 || sig2_check != footer.sig2) {
-      ldout(cct, 0) << "message signature does not match" << dendl;
+      ldout(msgr->cct, 0) << "message signature does not match" << dendl;
       ret = -EINVAL;
       goto out_dethrottle;
     }
