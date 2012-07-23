@@ -437,7 +437,7 @@ void MonClient::_pick_new_mon()
 	
   // Set session key for connection, if not already set PLR
 
-  if (cur_con != NULL && cur_con->session_key == NULL) {
+  if (cur_con != NULL && cur_con->session_key == 0) {
     // Get the right ticket handler, so we can extract the session key
     if (auth != NULL && auth->get_protocol == CEPH_AUTH_CEPHX) {
       CephXTicketManager ticket_manager = auth->CephXTicketManager;
