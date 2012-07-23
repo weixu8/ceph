@@ -154,14 +154,14 @@ struct Connection : public RefCountedObject {
   unsigned features;
   RefCountedObject *pipe;
 // session_key added for better authentication of ongoing connection messages PLR
-  CryptoKey session_key();
+  CryptoKey session_key;
 
   int rx_buffers_version;
   map<tid_t,pair<bufferlist,int> > rx_buffers;
 
 public:
   Connection() : lock("Connection::lock"), priv(NULL), peer_type(-1), features(0), pipe(NULL),
-		 rx_buffers_version(0), session_key(NULL) {}
+		 rx_buffers_version(0), session_key() {}
   ~Connection() {
     //generic_dout(0) << "~Connection " << this << dendl;
     if (priv) {
