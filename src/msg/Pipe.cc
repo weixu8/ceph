@@ -1513,12 +1513,12 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
-  /**
-   *  decode_message() could not check the digital signature, since it does not have
-   *  access to the session key for this connection, which is in the connection data
-   *  structure attached to the pipe.  So we check the signature at this point, instead,
-   *  since now we have the connection pointer.  PLR
-   */
+  //
+  //  decode_message() could not check the digital signature, since it does not have
+  //  access to the session key for this connection, which is in the connection data
+  //  structure attached to the pipe.  So we check the signature at this point, instead,
+  //  since now we have the connection pointer.  PLR
+  //
 
   bufferlist bl_plaintext,bl_ciphertext;
   std::string sig_error;
@@ -1553,6 +1553,7 @@ int Pipe::read_message(Message **pm)
       goto out_dethrottle;
     }
   }
+
   // If we got here, the signature checked.  PLR
 
   message->set_throttler(policy.throttler);
