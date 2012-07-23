@@ -177,10 +177,10 @@ void Message::encode(uint64_t features, bool datacrc)
       ldout(cct,-1) << "error encrypting message signature: " << error << dendl;
       ldout(cct, -1) << "no signature put on message" << dendl;
     } else {
-      ::decode((__le32)footer.sig1,bl_encrypted);
-      ::decode((__le32)footer.sig2,bl_encrypted);
-      ::decode((__le32)footer.sig3,bl_encrypted);
-      ::decode((__le32)footer.sig4,bl_encrypted);
+      ::decode(footer.sig1,bl_encrypted);
+      ::decode(footer.sig2,bl_encrypted);
+      ::decode(footer.sig3,bl_encrypted);
+      ::decode(footer.sig4,bl_encrypted);
     }
 
 
