@@ -42,6 +42,9 @@ using namespace librados;
 
 #include "common/errno.h"
 
+// included Crypto.h because get_random() has moved there PLR
+#include "auth/Crypto.h"
+
 int rados_tool_sync(const std::map < std::string, std::string > &opts,
                              std::vector<const char*> &args);
 
@@ -255,6 +258,7 @@ struct obj_info {
   size_t len;
 };
 
+#if 0
 uint64_t get_random(uint64_t min_val, uint64_t max_val)
 {
   uint64_t r;
@@ -262,6 +266,7 @@ uint64_t get_random(uint64_t min_val, uint64_t max_val)
   r = min_val + r % (max_val - min_val + 1);
   return r;
 }
+#endif
 
 class LoadGen {
   size_t total_sent;
