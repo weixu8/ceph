@@ -7,9 +7,11 @@
 #define dout_subsys ceph_subsys_auth
 
 
+// Added session key parameter to this method to allow called to obtain it.  PLR
+
 bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
 					      bufferlist& authorizer_data, bufferlist& authorizer_reply,
-                                              EntityName& entity_name, uint64_t& global_id, AuthCapsInfo& caps_info, uint64_t *auid)
+                                              EntityName& entity_name, uint64_t& global_id, AuthCapsInfo& caps_info, CryptoKey& session_key,  uint64_t *auid)
 {
   bufferlist::iterator iter = authorizer_data.begin();
 
@@ -27,6 +29,7 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
     caps_info = auth_ticket_info.ticket.caps;
     entity_name = auth_ticket_info.ticket.name;
     global_id = auth_ticket_info.ticket.global_id;
+    session_key = auth_ticket_info.session_key;
     if (auid) *auid = auth_ticket_info.ticket.auid;
   }
 

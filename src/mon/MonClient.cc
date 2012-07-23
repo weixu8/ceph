@@ -434,6 +434,20 @@ void MonClient::_pick_new_mon()
     cur_con->put();
   }
   cur_con = messenger->get_connection(monmap.get_inst(cur_mon));
+	
+  // Set session key for connection, if not already set PLR
+
+  if (cur_con != NULL && cur_con->session_key == NULL) {
+    // Get the right ticket handler, so we can extract the session key
+    if (auth != NULL && auth->get_protocol == CEPH_AUTH_CEPHX) {
+      CephXTicketManager ticket_manager = auth->CephXTicketManager;
+      CephXTicketHandler& ticket_handler = ticket_manager.get_handler(CEPH_ENTITY_TYPE_AUTH);
+      // If there is a ticket handler for this auth type, get a pointer to its session key
+      if (ticket_handler != NULL) {
+	cur-con->session_key = ticket_handler->session_key;
+      } 
+    }
+  }
 
   ldout(cct, 10) << "_pick_new_mon picked mon." << cur_mon << " con " << cur_con
 		 << " addr " << cur_con->get_peer_addr()

@@ -2164,9 +2164,11 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
       if (authorizer_data.length()) {
 	int ret = cephx_verify_authorizer(g_ceph_context, &keyring, iter,
 					  auth_ticket_info, authorizer_reply);
-	if (ret >= 0)
+	if (ret >= 0) {
+	  // Save the session key from the ticket into the connection session key
+	  con->session_key = auth_ticket_info.session_key;
 	  isvalid = true;
-	else
+	} else
 	  dout(0) << "ms_verify_authorizer bad authorizer from mon " << con->get_peer_addr() << dendl;
       }
     } else {

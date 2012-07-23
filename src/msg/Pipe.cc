@@ -62,6 +62,8 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
   } else {
     connection_state = new Connection();
     connection_state->pipe = get();
+  // Create random starting sequence numbers for security purposes.  
+    out_seq = get_random(0,sizeof(uint64_t));
   }
   msgr->timeout = msgr->cct->_conf->ms_tcp_read_timeout * 1000; //convert to ms
   if (msgr->timeout == 0)
@@ -1042,7 +1044,8 @@ void Pipe::was_session_reset()
 
   msgr->dispatch_queue.queue_remote_reset(connection_state);
 
-  out_seq = 0;
+// Set out_seq to a random value, so CRC won't be predictable
+  out_seq = get_random(0,sizeof(uint64_t);
   in_seq = 0;
   connect_seq = 0;
 }
@@ -1510,6 +1513,48 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
+  /**
+   *  decode_message() could not check the digital signature, since it does not have
+   *  access to the session key for this connection, which is in the connection data
+   *  structure attached to the pipe.  So we check the signature at this point, instead,
+   *  since now we have the connection pointer.  PLR
+   */
+
+  bufferlist bl_plaintext,bl_ciphertext;
+  std::string sig_error;
+  ::encode((__le32)header.crc,bl_plaintext);
+  ::encode((__le32)footer.front_crc,bl_plaintext);
+  ::encode((__le32)footer.middle_crc,bl_plaintext);
+  ::encode((__le32)footer.data_crc,bl_plaintext);
+
+  // Encrypt the buffer containing the checksums.
+
+  if (connection != NULL) {
+    encode_encrypt(bl_plaintext,connection->session_key,bl_ciphertext, sig_error);
+  } else {
+    ldout(cct,0) << "No connection pointer for message signature check" << dendl;
+    ret = -EINVAL;
+    goto out_dethrotttle;
+  }
+
+  // If the encryption was error-free, grab the signature from the message and compare it.
+
+  if (!sig_error.empty) {
+    ldout(cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
+    ret = -EINVAL;
+    goto out_dethrottle;
+  } else {
+    __le64 sig1_check,sig2_check;
+    ::decode((__le64)sig1_check,bl_ciphertext);
+    ::decode((__le64)sig2_check,bl_ciphertext);
+    if (sig1_check != footer.sig1 || sig2_check != footer.sig2) {
+      ldout(cct, 0) << "message signature does not match" << dendl;
+      ret = -EINVAL;
+      goto out_dethrottle;
+    }
+  }
+  // If we got here, the signature checked.  PLR
+
   message->set_throttler(policy.throttler);
 
   // store reservation size in message, so we don't get confused
@@ -1643,6 +1688,8 @@ int Pipe::write_message(Message *m)
   header.data_len = m->get_data().length();
   footer.flags = CEPH_MSG_FOOTER_COMPLETE;
   m->calc_header_crc();
+  // The crcs in the footer were computed in writer(), so now we have all the crcs for the
+  // message.  Calculate and store the signature.
 
   bufferlist blist = m->get_payload();
   blist.append(m->get_middle());

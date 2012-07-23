@@ -162,6 +162,26 @@ void Message::encode(uint64_t features, bool datacrc)
   if (datacrc) {
     calc_data_crc();
 
+    // Only put the digital signature in if we're calculating full CRC.  PLR
+
+    bufferlist bl_plaintext,bl_encrypted;
+    ceph_msg_footer footer;
+    std::string error;
+    ::encode((__le32)crc,bl_plaintext);
+    footer = get_footer();
+    ::encode((__le32)footer.front_crc,bl_plaintext);
+    ::encode((__le32)footer.middle_crc,bl_plaintext);
+    ::encode((__le32)footer.data_crc,bl_plaintext);
+    encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
+    if (!error.empty) {
+      ldout(cct,-1) << "error encrypting message signature: " << error << dendl;
+      ldout(cct, -1) << "no signature put on message" << dendl;
+    } else {
+      ::decode((__le64)footer.sig1,bl_encrypted);
+      ::decode((__le64)footer.sig2,bl_encrypted);
+    }
+
+
 #ifdef ENCODE_DUMP
     bufferlist bl;
     ::encode(get_header(), bl);
@@ -243,7 +263,7 @@ Message *decode_message(CephContext *cct, ceph_msg_header& header, ceph_msg_foot
 	return 0;
       }
     }
-  }
+  } 
 
   // make message
   Message *m = 0;

@@ -151,13 +151,15 @@ struct Connection : public RefCountedObject {
   entity_addr_t peer_addr;
   unsigned features;
   RefCountedObject *pipe;
+// session_key added for better authentication of ongoing connection messages PLR
+  CryptoKey session_key;
 
   int rx_buffers_version;
   map<tid_t,pair<bufferlist,int> > rx_buffers;
 
 public:
   Connection() : lock("Connection::lock"), priv(NULL), peer_type(-1), features(0), pipe(NULL),
-		 rx_buffers_version(0) {}
+		 rx_buffers_version(0), session_key(NULL) {}
   ~Connection() {
     //generic_dout(0) << "~Connection " << this << dendl;
     if (priv) {
