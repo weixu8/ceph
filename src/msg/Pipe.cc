@@ -1513,6 +1513,7 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
+#if 0
   //
   //  decode_message() could not check the digital signature, since it does not have
   //  access to the session key for this connection, which is in the connection data
@@ -1555,6 +1556,7 @@ int Pipe::read_message(Message **pm)
   }
 
   // If we got here, the signature checked.  PLR
+#endif
 
   message->set_throttler(policy.throttler);
 
