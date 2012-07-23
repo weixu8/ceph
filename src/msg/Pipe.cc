@@ -1513,7 +1513,6 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
-#if 0
   //
   //  decode_message() could not check the digital signature, since it does not have
   //  access to the session key for this connection, which is in the connection data
@@ -1533,7 +1532,9 @@ int Pipe::read_message(Message **pm)
   if (connection != NULL) {
     encode_encrypt(bl_plaintext,connection->session_key,bl_ciphertext, sig_error);
   } else {
+#if 0
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
+#endif
     ret = -EINVAL;
     goto out_dethrotttle;
   }
@@ -1541,7 +1542,9 @@ int Pipe::read_message(Message **pm)
   // If the encryption was error-free, grab the signature from the message and compare it.
 
   if (!sig_error.empty) {
+#if 0
     ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
+endif
     ret = -EINVAL;
     goto out_dethrottle;
   } else {
@@ -1549,14 +1552,15 @@ int Pipe::read_message(Message **pm)
     ::decode((__le64)sig1_check,bl_ciphertext);
     ::decode((__le64)sig2_check,bl_ciphertext);
     if (sig1_check != footer.sig1 || sig2_check != footer.sig2) {
+#if 0
       ldout(msgr->cct, 0) << "message signature does not match" << dendl;
+#endif
       ret = -EINVAL;
       goto out_dethrottle;
     }
   }
 
   // If we got here, the signature checked.  PLR
-#endif
 
   message->set_throttler(policy.throttler);
 
