@@ -435,6 +435,11 @@ void MonClient::_pick_new_mon()
   }
   cur_con = messenger->get_connection(monmap.get_inst(cur_mon));
 	
+//PLRDEBUG
+  if (cur_con != NULL && cur_con->session_key == 0) {
+	ldout(cct,10) << "_pick_new_mon(): No session key set" >> dendl;
+  }
+//PLRDEBUG
 #if 0
 /* I think this code is not required.  If it's added, stuff involving Cephx will need to
   be included here, which is undesirable, if it's unnecessary.  For the moment, compile
