@@ -1552,7 +1552,14 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       goto out_dethrottle;
     } else {
       uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
-      ldout(msgr->cct,0) << "preparing to decode a signature " << dendl;
+      ldout(msgr->cct,0) << "preparing to decode a signature: " << dendl;
+      ldout(msgr->cct,0) << "signature on message:" << dendl;
+      ldout(msgr->cct,0) << "    sig1 " << footer.sig1 << dendl;
+      ldout(msgr->cct,0) << "    sig2 " << footer.sig2 << dendl;
+      ldout(msgr->cct,0) << "    sig3 " << footer.sig3 << dendl;
+      ldout(msgr->cct,0) << "    sig4 " << footer.sig4 << dendl;
+      ldout(msgr->cct,0) << "locally calculated signature:" << dendl;
+      ldout(msgr->cct,0) << "    bl_ciphertext:" << bl_ciphertext << dendl;
       ::decode(sig1_check,bl_ciphertext);
       ::decode(sig2_check,bl_ciphertext);
       ::decode(sig3_check,bl_ciphertext);
