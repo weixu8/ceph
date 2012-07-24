@@ -19,6 +19,12 @@
 #include "AuthSupported.h"
 #include "include/types.h"
 
+// Different classes of session crypto handling
+
+#define NO_SESSION_CRYPTO 0
+#define SESSION_SYMMETRIC_AUTHENTICATE 1
+#define SESSION_SYMMETRIC_ENCRYPT 2
+
 class CephContext;
 class KeyRing;
 class RotatingKeyRing;
@@ -29,6 +35,7 @@ struct AuthAuthorizeHandler {
 				 bufferlist& authorizer_data, bufferlist& authorizer_reply,
                                  EntityName& entity_name, uint64_t& global_id,
 				 AuthCapsInfo& caps_info, CryptoKey& session_key, uint64_t *auid = NULL) = 0;
+  virtual int authorizer_session_crypto() {};
 };
 
 class AuthAuthorizeHandlerRegistry {

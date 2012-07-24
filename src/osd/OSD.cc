@@ -2765,8 +2765,10 @@ bool OSD::ms_verify_authorizer(Connection *con, int peer_type,
     if (!s) {
       s = new Session;
       con->set_priv(s->get());
-      // Attach the session key to the connection  PLR
+      // Attach the protocol and the session key to the connection  PLR
+      con->protocol = protocol;
       con->session_key = session_key;
+      con->authorize_handler = authorize_handler;
       s->con = con;
       dout(10) << " new session " << s << " con=" << s->con << " addr=" << s->con->get_peer_addr() << dendl;
     }

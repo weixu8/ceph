@@ -440,7 +440,7 @@ void MonClient::_pick_new_mon()
   be included here, which is undesirable, if it's unnecessary.  For the moment, compile
   this out.  If life is good during testing, get rid of it.  If not, fix it.
 */
-  // Set session key for connection, if not already set PLR
+  // Set protocol and session key for connection, if not already set PLR
 
   if (cur_con != NULL && cur_con->session_key == 0) {
     // Get the right ticket handler, so we can extract the session key
@@ -449,7 +449,11 @@ void MonClient::_pick_new_mon()
       CephXTicketHandler& ticket_handler = ticket_manager.get_handler(CEPH_ENTITY_TYPE_AUTH);
       // If there is a ticket handler for this auth type, get a pointer to its session key
       if (ticket_handler != NULL) {
-	cur-con->session_key = ticket_handler->session_key;
+	cur->con->protocol = auth->get_protocol();
+	cur->con->session_key = ticket_handler->session_key;
+	// This line won't work, if we put this code in.  auth is a AuthClientHandler,
+	// not an AuthAuthorizeHanlder.  Work needed to go from one to the other.  PLR
+        cur->con->authorize_handler = auth;
       } 
     }
   }

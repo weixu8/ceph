@@ -157,12 +157,17 @@ struct Connection : public RefCountedObject {
   int rx_buffers_version;
   map<tid_t,pair<bufferlist,int> > rx_buffers;
 
+// protocol keeps track of what authentication protocol we're using here
+  int protocol;
 // session_key added for better authentication of ongoing connection messages PLR
   CryptoKey session_key;
+// AuthAuthorizeHandler attaches us to the authorizer being used on the connection.
+// We could derive that from the protocol, but we'll be using per message.  PLR
+  AuthAuthorizeHandler *authorize_handler;
 
 public:
   Connection() : lock("Connection::lock"), priv(NULL), peer_type(-1), features(0), pipe(NULL),
-		 rx_buffers_version(0), session_key() {}
+		 rx_buffers_version(0), session_key() , authorize_handler(NULL) {}
   ~Connection() {
     //generic_dout(0) << "~Connection " << this << dendl;
     if (priv) {

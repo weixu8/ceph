@@ -144,6 +144,7 @@ using namespace std;
 #include "common/config.h"
 
 // Below included to get encode_encrypt(); That probably should be in Crypto.h, instead PLR
+
 #include "auth/cephx/CephxProtocol.h"
 
 #define DEBUGLVL  10    // debug level of output
@@ -165,27 +166,36 @@ void Message::encode(uint64_t features, bool datacrc)
   if (datacrc) {
     calc_data_crc();
 
-    // Only put the digital signature in if we're calculating full CRC.  PLR
+    // Only put the digital signature in if we're calculating full CRC and it's a signed connection.  PLR
 
-    bufferlist bl_plaintext,bl_encrypted;
-    ceph_msg_footer footer;
-    std::string error;
-    ::encode((__le32)header.crc,bl_plaintext);
-    footer = get_footer();
-    ::encode((__le32)footer.front_crc,bl_plaintext);
-    ::encode((__le32)footer.middle_crc,bl_plaintext);
-    ::encode((__le32)footer.data_crc,bl_plaintext);
-    encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
-    if (!error.empty()) {
-//	No context available here.  Need to figure out how to handle error msgs, then
-//     ldout(cct,-1) << "error encrypting message signature: " << error << dendl;
-//     ldout(cct, -1) << "no signature put on message" << dendl;
-    } else {
-      ::decode(footer.sig1,bl_encrypted);
-      ::decode(footer.sig2,bl_encrypted);
-      ::decode(footer.sig3,bl_encrypted);
-      ::decode(footer.sig4,bl_encrypted);
+  if (connection == NULL {
+     out(0) << "No connection pointer for message signature creation" << dendl;
+  } else {
+
+    // Check if messages for this connection are being signed. PLR
+
+    if (connection->authorize_handler != NULL && 
+connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE) {
+      bufferlist bl_plaintext,bl_encrypted;
+      ceph_msg_footer footer;
+      std::string error;
+      ::encode((__le32)header.crc,bl_plaintext);
+      footer = get_footer();
+      ::encode((__le32)footer.front_crc,bl_plaintext);
+      ::encode((__le32)footer.middle_crc,bl_plaintext);
+      ::encode((__le32)footer.data_crc,bl_plaintext);
+      encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
+      if (!error.empty()) {
+      dout(0) << "error encrypting message signature: " << error << dendl;
+      dout(0) << "no signature put on message" << dendl;
+      } else {
+        ::decode(footer.sig1,bl_encrypted);
+        ::decode(footer.sig2,bl_encrypted);
+        ::decode(footer.sig3,bl_encrypted);
+        ::decode(footer.sig4,bl_encrypted);
+      }
     }
+  }
 
 
 #ifdef ENCODE_DUMP

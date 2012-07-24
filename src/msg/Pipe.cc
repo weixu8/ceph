@@ -1518,51 +1518,55 @@ int Pipe::read_message(Message **pm)
     goto out_dethrottle;
   }
 
-#if 0
   //
   //  decode_message() could not check the digital signature, since it does not have
   //  access to the session key for this connection, which is in the connection data
   //  structure attached to the pipe.  So we check the signature at this point, instead,
-  //  since now we have the connection pointer.  PLR
+  //  since now we have the connection pointer.  Put the checksums into a buffer, ensure we 
+  //  have a connection pointer, make sure this is a message we should sign, and, if that all
+  //  works out, check the signature.  PLR
   //
-#endif
 
   ::encode((__le32)header.crc,bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
   ::encode((__le32)footer.middle_crc,bl_plaintext);
   ::encode((__le32)footer.data_crc,bl_plaintext);
 
-  // Encrypt the buffer containing the checksums.
-
-  if (connection_state != NULL) {
-    encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
-  } else {
+  if (connection_state == NULL {
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
     ret = -EINVAL;
     goto out_dethrottle;
   }
 
-  // If the encryption was error-free, grab the signature from the message and compare it.
+// Check if messages for this connection are being signed. PLR
 
-  if (!sig_error.empty()) {
-    ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
-    ret = -EINVAL;
-    goto out_dethrottle;
-  } else {
-    uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
-    ::decode(sig1_check,bl_ciphertext);
-    ::decode(sig2_check,bl_ciphertext);
-    ::decode(sig3_check,bl_ciphertext);
-    ::decode(sig4_check,bl_ciphertext);
-    if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
-	sig4_check != footer.sig4 ) {
-      ldout(msgr->cct, 0) << "message signature does not match" << dendl;
+  if (connection_state->authorize_handler != NULL && 
+connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE) {
+    // Encrypt the buffer containing the checksums. PLR
+    encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
+    // If the encryption was error-free, grab the signature from the message and compare it.
+
+    if (!sig_error.empty()) {
+      ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
       ret = -EINVAL;
       goto out_dethrottle;
+    } else {
+      uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
+      ::decode(sig1_check,bl_ciphertext);
+      ::decode(sig2_check,bl_ciphertext);
+      ::decode(sig3_check,bl_ciphertext);
+      ::decode(sig4_check,bl_ciphertext);
+      if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
+   sig4_check != footer.sig4 ) {
+	// Should have been signed, but signature check failed.  PLR
+        ldout(msgr->cct, 0) << "message signature does not match" << dendl;
+        ret = -EINVAL;
+        goto out_dethrottle;
+      }
     }
   }
 
-  // If we got here, the signature checked.  PLR
+
 
   message->set_throttler(policy.throttler);
 
