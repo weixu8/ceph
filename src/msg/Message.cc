@@ -171,9 +171,6 @@ void Message::encode(uint64_t features, bool datacrc)
   if (connection == NULL) {
      dout(0) << "No connection pointer for message signature creation" << dendl;
   } else {
-//PLRDEBUG
-    dout (0) << "Connection pointer found for message signature creation" << dendl;
-//PLRDEBUG
 
     // Check if messages for this connection are being signed. PLR
 
@@ -182,6 +179,9 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
       bufferlist bl_plaintext,bl_encrypted;
       ceph_msg_footer footer;
       std::string error;
+//PLRDEBUG
+    dout (0) << "Trying to create a signature" << dendl;
+//PLRDEBUG
       ::encode((__le32)header.crc,bl_plaintext);
       footer = get_footer();
       ::encode((__le32)footer.front_crc,bl_plaintext);
