@@ -41,7 +41,7 @@ uint64_t *auid)
 
 // Return type of crypto used for this session's data;  for none, no crypt used
 
-int authorizer_session_crypto() 
+int AuthNoneAuthorizeHandler::authorizer_session_crypto() 
 {
   return NO_SESSION_CRYPTO;
 }

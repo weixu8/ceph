@@ -38,7 +38,7 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
 
 // Return type of crypto used for this session's data;  for cephx, symmetric authentication
 
-int authorizer_session_crypto() 
+int CephxAuthorizeHandler::authorizer_session_crypto() 
 {
 return SESSION_SYMMETRIC_AUTHENTICATE;
 }
