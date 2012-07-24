@@ -1543,6 +1543,13 @@ int Pipe::read_message(Message **pm)
   if (connection_state->authorize_handler != NULL && 
 connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE) {
     // Encrypt the buffer containing the checksums. PLR
+    // PLRDEBUG
+    ldout(msgr->cct,0) << "preparing to encrypt a signature check: " << dendl;
+    ldout(msgr->cct,0) << "    header.crc "  << header.crc << dendl;
+    ldout(msgr->cct,0) << "    footer.front_crc " << footer.front_crc << dendl;
+    ldout(msgr->cct,0) << "    footer.middle_crc " << footer.middle_crc << dendl;
+    ldout(msgr->cct,0) << "    footer.data_crc " << footer.data_crc << dendl;
+    //PLRDEBUG
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
     // If the encryption was error-free, grab the signature from the message and compare it.
 
@@ -1551,7 +1558,9 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       ret = -EINVAL;
       goto out_dethrottle;
     } else {
+      bufferlist::iterator ci = bl_ciphertext.begin();
       uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
+    //PLRDEBUG
       ldout(msgr->cct,0) << "preparing to decode a signature: " << dendl;
       ldout(msgr->cct,0) << "signature on message:" << dendl;
       ldout(msgr->cct,0) << "    sig1 " << footer.sig1 << dendl;
@@ -1560,10 +1569,11 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       ldout(msgr->cct,0) << "    sig4 " << footer.sig4 << dendl;
       ldout(msgr->cct,0) << "locally calculated signature:" << dendl;
       ldout(msgr->cct,0) << "    bl_ciphertext:" << bl_ciphertext << dendl;
-      ::decode(sig1_check,bl_ciphertext);
-      ::decode(sig2_check,bl_ciphertext);
-      ::decode(sig3_check,bl_ciphertext);
-      ::decode(sig4_check,bl_ciphertext);
+    //PLRDEBUG
+      ::decode(sig1_check,ci);
+      ::decode(sig2_check,ci);
+      ::decode(sig3_check,ci);
+      ::decode(sig4_check,ci);
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
    sig4_check != footer.sig4 ) {
 	// Should have been signed, but signature check failed.  PLR
