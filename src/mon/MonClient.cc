@@ -437,7 +437,7 @@ void MonClient::_pick_new_mon()
 	
 //PLRDEBUG
   if (cur_con != NULL && cur_con->session_key == 0) {
-	ldout(cct,10) << "_pick_new_mon(): No session key set" >> dendl;
+	ldout(cct,10) << "_pick_new_mon(): No session key set" << dendl;
   }
 //PLRDEBUG
 #if 0
