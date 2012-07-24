@@ -39,6 +39,7 @@ class MAuthReply;
 class MAuthRotating;
 class LogClient;
 class AuthSupported;
+class AuthAuthorizeHandlerRegistry;
 
 enum MonClientState {
   MC_STATE_NONE,
@@ -67,6 +68,9 @@ private:
   Finisher finisher;
   bool initialized;
 
+  // Added to support session signatures.  PLR
+
+  AuthAuthorizeHandlerRegistry *authorize_handler_registry;
   LogClient *log_client;
   bool more_log_pending;
 
