@@ -169,7 +169,7 @@ void Message::encode(uint64_t features, bool datacrc)
     // Only put the digital signature in if we're calculating full CRC and it's a signed connection.  PLR
 
   if (connection == NULL) {
-     out(0) << "No connection pointer for message signature creation" << dendl;
+     dout(0) << "No connection pointer for message signature creation" << dendl;
   } else {
 
     // Check if messages for this connection are being signed. PLR

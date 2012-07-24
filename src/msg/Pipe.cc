@@ -1532,7 +1532,7 @@ int Pipe::read_message(Message **pm)
   ::encode((__le32)footer.middle_crc,bl_plaintext);
   ::encode((__le32)footer.data_crc,bl_plaintext);
 
-  if (connection_state == NULL {
+  if (connection_state == NULL) {
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
     ret = -EINVAL;
     goto out_dethrottle;
