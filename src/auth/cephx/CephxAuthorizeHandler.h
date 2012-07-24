@@ -24,7 +24,7 @@ struct CephxAuthorizeHandler : public AuthAuthorizeHandler {
 			 bufferlist& authorizer_data, bufferlist& authorizer_reply,
                          EntityName& entity_name, uint64_t& global_id,
 			 AuthCapsInfo& caps_info, CryptoKey& session_key, uint64_t *auid = NULL);
-  int authorizer_session_crypto() {};
+  int authorizer_session_crypto();
 };
 
 
