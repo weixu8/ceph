@@ -171,6 +171,9 @@ void Message::encode(uint64_t features, bool datacrc)
   if (connection == NULL) {
      dout(0) << "No connection pointer for message signature creation" << dendl;
   } else {
+//PLRDEBUG
+    dout (0) << "Connection pointer found for message signature creation" << dendl;
+//PLRDEBUG
 
     // Check if messages for this connection are being signed. PLR
 
@@ -189,10 +192,14 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
       dout(0) << "error encrypting message signature: " << error << dendl;
       dout(0) << "no signature put on message" << dendl;
       } else {
-        ::decode(footer.sig1,bl_encrypted);
-        ::decode(footer.sig2,bl_encrypted);
-        ::decode(footer.sig3,bl_encrypted);
-        ::decode(footer.sig4,bl_encrypted);
+        bufferlist::iterator ci = bl_encrypted.begin();
+//PLRDEBUG
+	dout(0) << "putting signature in client message" << dendl;
+//PLRDEBUG
+        ::decode(footer.sig1,ci);
+        ::decode(footer.sig2,ci);
+        ::decode(footer.sig3,ci);
+        ::decode(footer.sig4,ci);
       }
     }
   }
