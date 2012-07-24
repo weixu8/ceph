@@ -202,6 +202,13 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
         ::decode(footer.sig4,ci);
       }
     }
+//PLRDEBUG
+    else 
+	if (connection->authorize_handler == NULL)
+		dout (0) << "Connection's authorize handler is NULL" << dendl;
+	else
+		dout(0) << "Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
+//PLRDEBUG
   }
 
 
