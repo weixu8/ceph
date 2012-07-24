@@ -2161,13 +2161,13 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
       bufferlist::iterator iter = authorizer_data.begin();
       CephXServiceTicketInfo auth_ticket_info;
       
-#ifdef 0
-      // Don't try to do authentication for the monitor, for the moment.  If we change that
-      // we'll need to do something about the authorize handler assignment below, since
-      // as things stand, we do not have access to what the authorize handler should be.  PLR
       if (authorizer_data.length()) {
 	int ret = cephx_verify_authorizer(g_ceph_context, &keyring, iter,
 					  auth_ticket_info, authorizer_reply);
+#if 0
+      // Don't try to do authentication for the monitor, for the moment.  If we change that
+      // we'll need to do something about the authorize handler assignment below, since
+      // as things stand, we do not have access to what the authorize handler should be.  PLR
 	if (ret >= 0) {
 	  // Save the protocol and session key from the ticket into the connection object PLR
 	  con->protocol = protocol;
