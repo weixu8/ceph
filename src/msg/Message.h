@@ -29,6 +29,7 @@
 #include "common/config.h"
 
 #include "auth/Crypto.h"
+#include "auth/AuthAuthorizeHandler.h"
 
 // monitor internal
 #define MSG_MON_ELECTION           65
