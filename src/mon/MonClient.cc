@@ -452,14 +452,19 @@ void MonClient::_pick_new_mon()
       // If there is a ticket handler for this auth type, get a pointer to its session key
       if (ticket_handler != NULL) {
 	cur_con->protocol = auth->get_protocol();
+        ldout(cct, 10) << "_pick_new_mon: setting session key to " << ticket_handler->session_key << dendl;
 	cur_con->session_key = ticket_handler->session_key;
 	// This line won't work, if we put this code in.  auth is a AuthClientHandler,
 	// not an AuthAuthorizeHanlder.  Work needed to go from one to the other.  PLR
 	// Current thought is to add a AuthAuthorizedHandlerRegistry pointer to MonClient
 	// in MonClient.h, and initialize it in MonClient.cc, using the model from mds/MDS.cc
+	// I think this is done, but maybe not done right.  PLR
 	//
         cur_con->authorize_handler = authorize_handler_registry->get_handler(protocol);
-      } 
+      } else 
+      {
+        ldout(cct, 10) << "_pick_new_mon ticket_handler NULL, couldn't set session key." << dendl;
+      }
     }
   }
 

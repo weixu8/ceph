@@ -1567,13 +1567,16 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       ldout(msgr->cct,0) << "    sig2 " << footer.sig2 << dendl;
       ldout(msgr->cct,0) << "    sig3 " << footer.sig3 << dendl;
       ldout(msgr->cct,0) << "    sig4 " << footer.sig4 << dendl;
-      ldout(msgr->cct,0) << "locally calculated signature:" << dendl;
-      ldout(msgr->cct,0) << "    bl_ciphertext:" << bl_ciphertext << dendl;
     //PLRDEBUG
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
       ::decode(sig3_check,ci);
       ::decode(sig4_check,ci);
+      ldout(msgr->cct,0) << "locally calculated signature:" << dendl;
+      ldout(msgr->cct,0) << "    sig1_check:" << sig1_check << dendl;
+      ldout(msgr->cct,0) << "    sig2_check:" << sig2_check << dendl;
+      ldout(msgr->cct,0) << "    sig3_check:" << sig3_check << dendl;
+      ldout(msgr->cct,0) << "    sig4_check:" << sig4_check << dendl;
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
    sig4_check != footer.sig4 ) {
 	// Should have been signed, but signature check failed.  PLR
