@@ -66,11 +66,13 @@ private:
   Mutex monc_lock;
   SafeTimer timer;
   Finisher finisher;
-  bool initialized;
 
   // Added to support session signatures.  PLR
 
   AuthAuthorizeHandlerRegistry *authorize_handler_registry;
+
+  bool initialized;
+
   LogClient *log_client;
   bool more_log_pending;
 
