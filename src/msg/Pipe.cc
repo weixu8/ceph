@@ -1601,7 +1601,9 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
         ldout(msgr->cct, 0) << "message signature does not match" << dendl;
         ret = -EINVAL;
         goto out_dethrottle;
-      }
+      } else 
+	{
+          ldout(msgr->cct, 0) << "Signature matches!" << dendl;
     }
     }
   }
