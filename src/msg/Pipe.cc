@@ -1553,10 +1553,13 @@ int Pipe::read_message(Message **pm)
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
   } else {
 
-// This is a connection's message, so Check if messages for this connection are being signed. PLR
+// This is a connection's message, so check if messages for this connection are being signed. PLR
+// For OSD and MDS connections, there should be an authorize_handler.  For Mon connections,
+// check if the protocol is the CEPHX protocol.  The latter is kind of half-assed and
+// should be fixed, to make it generalize to other crypto authentication protocols.  PLR
 
-  if (connection_state->authorize_handler != NULL && 
-connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE) {
+  if (connection_state-> protocol == CEPH_AUTH_CEPHX || (connection_state->authorize_handler != NULL && 
+connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE)) {
     // Encrypt the buffer containing the checksums. PLR
     // PLRDEBUG
     ldout(msgr->cct,0) << "preparing to encrypt a signature check: " << dendl;
