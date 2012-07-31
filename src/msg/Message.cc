@@ -179,27 +179,28 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
       bufferlist bl_plaintext,bl_encrypted;
       ceph_msg_footer footer;
       std::string error;
-//PLRDEBUG
-    dout (0) << "Trying to create a signature" << dendl;
-//PLRDEBUG
       ::encode((__le32)header.crc,bl_plaintext);
       footer = get_footer();
       ::encode((__le32)footer.front_crc,bl_plaintext);
       ::encode((__le32)footer.middle_crc,bl_plaintext);
       ::encode((__le32)footer.data_crc,bl_plaintext);
+//PLRDEBUG
+    dout (0) << "Trying to create a signature" << dendl;
+    dout (0) << "CRCs are: header " << header.crc << " front " << footer.front_crc << " middle " << footer.middle_crc << " data " << footer.data_crc  << dendl;
+//PLRDEBUG
       encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
       if (!error.empty()) {
       dout(0) << "error encrypting message signature: " << error << dendl;
       dout(0) << "no signature put on message" << dendl;
       } else {
         bufferlist::iterator ci = bl_encrypted.begin();
-//PLRDEBUG
-	dout(0) << "putting signature in client message" << dendl;
-//PLRDEBUG
         ::decode(footer.sig1,ci);
         ::decode(footer.sig2,ci);
         ::decode(footer.sig3,ci);
         ::decode(footer.sig4,ci);
+//PLRDEBUG
+	dout(0) << "putting signature in client message: sig1 " footer.sig1 << " sig2 " << footer.sig2 << " sig3 " << footer.sig3 << " sig4 " << footer.sig4  << dendl;
+//PLRDEBUG
       }
     }
 //PLRDEBUG
