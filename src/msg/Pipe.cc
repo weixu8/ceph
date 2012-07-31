@@ -1598,7 +1598,7 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
    sig4_check != footer.sig4 ) {
 	// Should have been signed, but signature check failed.  PLR
-        ldout(msgr->cct, 0) << ""MSG " << header.seq << " message signature does not match" << dendl;
+        ldout(msgr->cct, 0) << "MSG " << header.seq << " message signature does not match" << dendl;
         ret = -EINVAL;
         goto out_dethrottle;
       } else 
