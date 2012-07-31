@@ -2165,16 +2165,16 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
 	int ret = cephx_verify_authorizer(g_ceph_context, &keyring, iter,
 					  auth_ticket_info, authorizer_reply);
 	if (ret >= 0) {
-#if 0
-      // Don't try to do authentication for the monitor, for the moment.  If we change that
-      // we'll need to do something about the authorize handler assignment below, since
+      // We'll need to do something about the authorize handler assignment below, since
       // as things stand, we do not have access to what the authorize handler should be.  PLR
-	  // Save the protocol and session key from the ticket into the connection object PLR
+      // Save the protocol and session key from the ticket into the connection object PLR
 	  con->protocol = protocol;
 	  con->session_key = auth_ticket_info.session_key;
+#if 0
 	  // No authorize handler directly available here.  Can we get one?  PLR
 	  // The monitor class allows us to get an authorizer.  From that, can we get a handler?
 	  // I'll look into this later.
+
           con->authorize_handler = authorize_handler;
 #endif
 	  isvalid = true;

@@ -33,8 +33,6 @@
 #include "auth/Auth.h"
 #include "auth/KeyRing.h"
 #include "auth/AuthSupported.h"
-// Added to get access to the session key PLR
-#include "auth/cephx/CephxClientHandler.h"
 
 #include "include/str_list.h"
 #include "include/addr_parsing.h"
@@ -53,8 +51,6 @@ MonClient::MonClient(CephContext *cct_) :
   cur_con(NULL),
   monc_lock("MonClient::monc_lock"),
   timer(cct_, monc_lock), finisher(cct_),
-  // Initializing to support session signatures.  PLR
-  authorize_handler_registry(new AuthAuthorizeHandlerRegistry(cct_)),
   initialized(false),
   log_client(NULL),
   more_log_pending(false),
@@ -439,43 +435,6 @@ void MonClient::_pick_new_mon()
   }
   cur_con = messenger->get_connection(monmap.get_inst(cur_mon));
 	
-#if 0
-  // This isn't the right place for this code, since the authentication protocol hasn't run
-  // when this code is executed, so the key is not yet available.  I haven't deleted this code
-  // purely because I want to save it as a model for the right place to put the code.  PLR
-
-  if (cur_con != NULL && cur_con->session_key.get_type() == 0) {
-    // Get the right ticket handler, so we can extract the session key
-    if (auth && auth->get_protocol() == CEPH_AUTH_CEPHX) {
-      // auth is an AuthClientHandler.  It doesn't have a CephXTicketManager.  Without that,
-      // we can't get a ticket handler, and without a ticket handler we can't get the session
-      // session key.  So we need to fix that. PLR
-      CephXTicketManager ticket_manager = auth->CephXTicketManager;
-
-// I have some concern that CEPH_ENTITY_TYPE_AUTH doesn't have the session key we need. PLR
-
-      CephXTicketHandler& ticket_handler = ticket_manager.get_handler(CEPH_ENTITY_TYPE_AUTH);
-      // If there is a ticket handler for this auth type, get a pointer to its session key
-      if (ticket_handler != NULL) {
-        // We wouldn't get here if the protocol was not CEPH_AUTH_CEPHX.  If we add other
-        // signing protocols, we need to change this, among other things.  PLR
-	cur_con->protocol = CEPH_AUTH_CEPHX;
-        ldout(cct, 10) << "_pick_new_mon: setting session key to " << ticket_handler.session_key << dendl;
-	cur_con->session_key = ticket_handler.session_key;
-	// This line won't work, if we put this code in.  auth is a AuthClientHandler,
-	// not an AuthAuthorizeHandler.  Work needed to go from one to the other.  PLR
-	// Current thought is to add a AuthAuthorizedHandlerRegistry pointer to MonClient
-	// in MonClient.h, and initialize it in MonClient.cc, using the model from mds/MDS.cc
-	//
-        cur_con->authorize_handler = authorize_handler_registry->get_handler(cur_con->protocol);
-      } else 
-      {
-        ldout(cct, 10) << "_pick_new_mon ticket_handler NULL, couldn't set session key." << dendl;
-      }
-    }
-  }
-#endif
-
   ldout(cct, 10) << "_pick_new_mon picked mon." << cur_mon << " con " << cur_con
 		 << " addr " << cur_con->get_peer_addr()
 		 << dendl;
