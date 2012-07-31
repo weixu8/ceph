@@ -865,14 +865,19 @@ int Pipe::connect()
 
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
-      connection_state->session_key = authorizer.session_key;
-      connection_state->protocol = authorizer.protocol;
+      if (authorizer) {
+      	connection_state->session_key = authorizer->session_key;
+      	connection_state->protocol = authorizer->protocol;
 
 // We probably need to get a handler for this protocol, which requires access to an
 // AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
 // MonClient code all set one up.  PLR
 
 //      connection_state->authorize_handler = get_handler(authorizer->protocol);
+    } else
+    {
+      ldout(msgr->cct,10) << "authorizer pointer is NULL " << dendl;
+    }
 
       msgr->dispatch_queue.queue_connect(connection_state);
       
