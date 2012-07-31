@@ -865,13 +865,13 @@ int Pipe::connect()
 
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
       
+#if 0
       if (authorizer->get_session_key(connection_state->session_key)){
         ldout(msgr->cct,20) << "got session key for new connection " << connection_state->session_key << dendl;
       } else
       {
         ldout(msgr->cct,20) << "connect:  No session key for new connection " <<dendl;
       }
-#if 0
       connection_state->protocol = authorizer->protocol;
 #endif
 // We probably need to get a handler for this protocol, which requires access to an
