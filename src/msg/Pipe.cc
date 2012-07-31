@@ -865,10 +865,8 @@ int Pipe::connect()
 
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
-#if 0
-      connection_state->session_key = authorizer->session_key;
-      connection_state->protocol = authorizer->protocol;
-#endif
+      connection_state->session_key = authorizer.session_key;
+      connection_state->protocol = authorizer.protocol;
 
 // We probably need to get a handler for this protocol, which requires access to an
 // AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
