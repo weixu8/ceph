@@ -199,7 +199,7 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
         ::decode(footer.sig3,ci);
         ::decode(footer.sig4,ci);
 //PLRDEBUG
-	dout(0) << "MSG " header.seq << "putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << " sig3 " << footer.sig3 << " sig4 " << footer.sig4  << dendl;
+	dout(0) << "MSG " << header.seq << "putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << " sig3 " << footer.sig3 << " sig4 " << footer.sig4  << dendl;
 //PLRDEBUG
       }
     }
