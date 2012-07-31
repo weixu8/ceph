@@ -866,6 +866,7 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
+        ldout(msgr->cct,10) << "Setting connection session key to  " << authorizer->session_key << dendl;
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
@@ -1550,11 +1551,9 @@ int Pipe::read_message(Message **pm)
 
   if (connection_state == NULL) {
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
-    ret = -EINVAL;
-    goto out_dethrottle;
-  }
+  } else {
 
-// Check if messages for this connection are being signed. PLR
+// This is a connection's message, so Check if messages for this connection are being signed. PLR
 
   if (connection_state->authorize_handler != NULL && 
 connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE) {
@@ -1601,8 +1600,8 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
         goto out_dethrottle;
       }
     }
+    }
   }
-
 
 
   message->set_throttler(policy.throttler);
