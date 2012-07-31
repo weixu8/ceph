@@ -1563,10 +1563,10 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
     // Encrypt the buffer containing the checksums. PLR
     // PLRDEBUG
     ldout(msgr->cct,0) << "MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
-    ldout(msgr->cct,0) << "    header.crc "  << header.crc << dendl;
-    ldout(msgr->cct,0) << "    footer.front_crc " << footer.front_crc << dendl;
-    ldout(msgr->cct,0) << "    footer.middle_crc " << footer.middle_crc << dendl;
-    ldout(msgr->cct,0) << "    footer.data_crc " << footer.data_crc << dendl;
+    ldout(msgr->cct,0) << "MSG" << header.seq << "    header.crc "  << header.crc << dendl;
+    ldout(msgr->cct,0) << "MSG" << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
+    ldout(msgr->cct,0) << "MSG" << header.seq << "    footer.middle_crc " << footer.middle_crc << dendl;
+    ldout(msgr->cct,0) << "MSG" << header.seq << "    footer.data_crc " << footer.data_crc << dendl;
     //PLRDEBUG
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
     // If the encryption was error-free, grab the signature from the message and compare it.
@@ -1579,31 +1579,31 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       bufferlist::iterator ci = bl_ciphertext.begin();
       uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
     //PLRDEBUG
-      ldout(msgr->cct,0) << "preparing to decode a signature: " << dendl;
-      ldout(msgr->cct,0) << "signature on message:" << dendl;
-      ldout(msgr->cct,0) << "    sig1 " << footer.sig1 << dendl;
-      ldout(msgr->cct,0) << "    sig2 " << footer.sig2 << dendl;
-      ldout(msgr->cct,0) << "    sig3 " << footer.sig3 << dendl;
-      ldout(msgr->cct,0) << "    sig4 " << footer.sig4 << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << " preparing to decode a signature: " << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "signature on message:" << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig2 " << footer.sig2 << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig3 " << footer.sig3 << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig4 " << footer.sig4 << dendl;
     //PLRDEBUG
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
       ::decode(sig3_check,ci);
       ::decode(sig4_check,ci);
-      ldout(msgr->cct,0) << "locally calculated signature:" << dendl;
-      ldout(msgr->cct,0) << "    sig1_check:" << sig1_check << dendl;
-      ldout(msgr->cct,0) << "    sig2_check:" << sig2_check << dendl;
-      ldout(msgr->cct,0) << "    sig3_check:" << sig3_check << dendl;
-      ldout(msgr->cct,0) << "    sig4_check:" << sig4_check << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "locally calculated signature:" << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig3_check:" << sig3_check << dendl;
+      ldout(msgr->cct,0) << "MSG " << header.seq << "    sig4_check:" << sig4_check << dendl;
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
    sig4_check != footer.sig4 ) {
 	// Should have been signed, but signature check failed.  PLR
-        ldout(msgr->cct, 0) << "message signature does not match" << dendl;
+        ldout(msgr->cct, 0) << ""MSG " << header.seq << message signature does not match" << dendl;
         ret = -EINVAL;
         goto out_dethrottle;
       } else 
 	{
-          ldout(msgr->cct, 0) << "Signature matches!" << dendl;
+          ldout(msgr->cct, 0) << "MSG " << header.seq << "Signature matches!" << dendl;
 	}
     }
     }
