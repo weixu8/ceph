@@ -1562,7 +1562,7 @@ int Pipe::read_message(Message **pm)
 connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE)) {
     // Encrypt the buffer containing the checksums. PLR
     // PLRDEBUG
-    ldout(msgr->cct,0) << "preparing to encrypt a signature check: " << dendl;
+    ldout(msgr->cct,0) << "MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
     ldout(msgr->cct,0) << "    header.crc "  << header.crc << dendl;
     ldout(msgr->cct,0) << "    footer.front_crc " << footer.front_crc << dendl;
     ldout(msgr->cct,0) << "    footer.middle_crc " << footer.middle_crc << dendl;

@@ -185,7 +185,7 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
       ::encode((__le32)footer.middle_crc,bl_plaintext);
       ::encode((__le32)footer.data_crc,bl_plaintext);
 //PLRDEBUG
-    dout (0) << "Trying to create a signature" << dendl;
+    dout (0) << " MSG " << header.seq << ": Trying to create a signature" << dendl;
     dout (0) << "CRCs are: header " << header.crc << " front " << footer.front_crc << " middle " << footer.middle_crc << " data " << footer.data_crc  << dendl;
 //PLRDEBUG
       encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
