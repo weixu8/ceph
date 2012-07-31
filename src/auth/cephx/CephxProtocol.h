@@ -280,6 +280,7 @@ public:
 
   bool build_authorizer();
   bool verify_reply(bufferlist::iterator& reply);
+  bool get_session_key(CryptoKey& session_key);
 };
 
 

@@ -27,6 +27,7 @@ struct AuthNoneAuthorizer : public AuthAuthorizer {
     return 0;
   }
   bool verify_reply(bufferlist::iterator& reply) { return true; }
+  bool get_session_key(CryptoKey& session_key) {return false;}
 };
 
 #endif
