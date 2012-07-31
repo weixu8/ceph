@@ -867,8 +867,8 @@ int Pipe::connect()
 
 #if 0
       connection_state->session_key = authorizer->session_key;
-#endif
       connection_state->protocol = authorizer->protocol;
+#endif
 
 // We probably need to get a handler for this protocol, which requires access to an
 // AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
