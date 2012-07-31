@@ -174,8 +174,8 @@ void Message::encode(uint64_t features, bool datacrc)
 
     // Check if messages for this connection are being signed. PLR
 
-  if (connection_state-> protocol == CEPH_AUTH_CEPHX || (connection_state->authorize_handler != NULL && 
-connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE)) {
+  if (connection->protocol == CEPH_AUTH_CEPHX || (connection->authorize_handler != NULL && 
+connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_AUTHENTICATE)) {
       bufferlist bl_plaintext,bl_encrypted;
       ceph_msg_footer footer;
       std::string error;

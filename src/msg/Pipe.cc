@@ -1604,6 +1604,7 @@ connection_state->authorize_handler->authorizer_session_crypto() == SESSION_SYMM
       } else 
 	{
           ldout(msgr->cct, 0) << "Signature matches!" << dendl;
+	}
     }
     }
   }
