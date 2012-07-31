@@ -862,7 +862,18 @@ int Pipe::connect()
       connection_state->set_features((unsigned)reply.features & (unsigned)connect.features);
       ldout(msgr->cct,10) << "connect success " << connect_seq << ", lossy = " << policy.lossy
 	       << ", features " << connection_state->get_features() << dendl;
+
+// Grab the session key out of the authorizer and put it in the connection data structure PLR
       
+      connection_state->session_key = authorizer->session_key;
+      ldout(msgr->cct,20) << "connect:  set session key for new connection to " << connection_state->session_key << dendl;
+      connection_state->protocol = authorizer->protocol;
+// We probably need to get a handler for this protocol, which requires access to an
+// AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
+// MonClient code all set one up.  PLR
+
+//      connection_state->authorize_handler = get_handler(authorizer->protocol);
+
       msgr->dispatch_queue.queue_connect(connection_state);
       
       if (!reader_running) {
