@@ -503,8 +503,3 @@ bool CephXAuthorizer::verify_reply(bufferlist::iterator& indata)
   return true;
 }
 
-bool CephXAuthorizer::get_session_key(CryptoKey& key)
-{
-	key = session_key;
-	return true;
-}
