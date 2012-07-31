@@ -871,7 +871,9 @@ int Pipe::connect()
       {
         ldout(msgr->cct,20) << "connect:  No session key for new connection " <<dendl;
       }
+#if 0
       connection_state->protocol = authorizer->protocol;
+#endif
 // We probably need to get a handler for this protocol, which requires access to an
 // AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
 // MonClient code all set one up.  PLR
