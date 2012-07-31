@@ -864,8 +864,15 @@ int Pipe::connect()
 	       << ", features " << connection_state->get_features() << dendl;
 
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
+
+// This core dumps.  It appears to do so later, in writer, not here.  Perhaps deleting the
+// authorizer has deleted the session key that's been copied.  So maybe the right thing
+// to do is to set up a new session key for the connection and copy in the data from the
+// authorizer's fields, instead of just assigning it.
       
-      connection_state->session_key = authorizer->session_key;
+      connection_state->session_key.type = authorizer->session_key.type;
+      connection_state->session_key.created = authorizer->session_key.created;
+      connection_state->session_key.secret = authorizer->session_key.secret;
       connection_state->protocol = authorizer->protocol;
 // We probably need to get a handler for this protocol, which requires access to an
 // AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
