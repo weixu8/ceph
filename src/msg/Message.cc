@@ -185,8 +185,8 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
       ::encode((__le32)footer.middle_crc,bl_plaintext);
       ::encode((__le32)footer.data_crc,bl_plaintext);
 //PLRDEBUG
-    dout (0) << " MSG " << header.seq << ": Trying to create a signature" << dendl;
-    dout (0) << "MSG " << header.seq << " CRCs are: header " << header.crc << " front " << footer.front_crc << " middle " << footer.middle_crc << " data " << footer.data_crc  << dendl;
+    dout (0) << "SIGN: MSG " << header.seq << ": Trying to create a signature" << dendl;
+    dout (0) << "SIGN: MSG " << header.seq << " CRCs are: header " << header.crc << " front " << footer.front_crc << " middle " << footer.middle_crc << " data " << footer.data_crc  << dendl;
 //PLRDEBUG
       encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
       if (!error.empty()) {
@@ -199,16 +199,16 @@ connection->authorize_handler->authorizer_session_crypto() == SESSION_SYMMETRIC_
         ::decode(footer.sig3,ci);
         ::decode(footer.sig4,ci);
 //PLRDEBUG
-	dout(0) << "MSG " << header.seq << " putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << " sig3 " << footer.sig3 << " sig4 " << footer.sig4  << dendl;
+	dout(0) << "SIGN: MSG " << header.seq << " putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << " sig3 " << footer.sig3 << " sig4 " << footer.sig4  << dendl;
 //PLRDEBUG
       }
     }
 //PLRDEBUG
     else 
 	if (connection->authorize_handler == NULL)
-		dout (0) << "Connection's authorize handler is NULL; protocol is "<<connection->protocol  << dendl;
+		dout (0) << "SIGN: Connection's authorize handler is NULL; protocol is "<<connection->protocol  << dendl;
 	else
-		dout(0) << "Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
+		dout(0) << "SIGN: Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
 //PLRDEBUG
   }
 

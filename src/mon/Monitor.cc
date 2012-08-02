@@ -2170,6 +2170,9 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
       // Save the protocol and session key from the ticket into the connection object PLR
       // Maybe we can just get by with the protocol, though.  Add code to Pipe.cc to find out.
 	  con->protocol = protocol;
+//PLRDEBUG
+	  dout(0) << "SIGN: MON: Setting session key to " auth_ticket_info.session_key.secret << dendl;
+//PLRDEBUG
 	  con->session_key = auth_ticket_info.session_key;
 #if 0
 	  // No authorize handler directly available here.  Can we get one?  PLR
