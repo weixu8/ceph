@@ -1590,6 +1590,8 @@ int Pipe::read_message(Message **pm)
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig3 " << footer.sig3 << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig4 " << footer.sig4 << dendl;
     //PLRDEBUG
+      // Skip the magic number at the front. PLR
+      ci++:
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
       ::decode(sig3_check,ci);
