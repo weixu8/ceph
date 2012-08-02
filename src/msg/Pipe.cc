@@ -65,13 +65,13 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
     connection_state = con->get();
     connection_state->reset_pipe(this);
   // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0,(sizeof int));
+    out_seq = get_random(0,sizeof (int));
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   } else {
     connection_state = new Connection();
     connection_state->pipe = get();
   // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0, (sizeof int));
+    out_seq = get_random(0, sizeof (int));
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   }
   msgr->timeout = msgr->cct->_conf->ms_tcp_read_timeout * 1000; //convert to ms
