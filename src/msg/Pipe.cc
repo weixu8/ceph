@@ -29,6 +29,8 @@
 #include "auth/cephx/CephxProtocol.h"
 
 #define dout_subsys ceph_subsys_ms
+// constant to limit starting sequence number to 2^31
+#define MAX_SEQ_START  2147483648
 
 #undef dout_prefix
 #define dout_prefix _pipe_prefix(_dout)
@@ -65,13 +67,13 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
     connection_state = con->get();
     connection_state->reset_pipe(this);
   // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0,max_obj_len);
+    out_seq = get_random(0,MAX_SEQ_START);
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   } else {
     connection_state = new Connection();
     connection_state->pipe = get();
   // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0, max_obj_len);
+    out_seq = get_random(0, MAX_SEQ_START);
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   }
   msgr->timeout = msgr->cct->_conf->ms_tcp_read_timeout * 1000; //convert to ms
