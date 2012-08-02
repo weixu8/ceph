@@ -1581,7 +1581,7 @@ int Pipe::read_message(Message **pm)
       goto out_dethrottle;
     } else {
       bufferlist::iterator ci = bl_ciphertext.begin();
-      uint32_t sig1_check,sig2_check,sig3_check,sig4_check;
+      uint32_t magic, sig1_check,sig2_check,sig3_check,sig4_check;
     //PLRDEBUG
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " preparing to decode a signature: " << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
@@ -1591,7 +1591,7 @@ int Pipe::read_message(Message **pm)
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig4 " << footer.sig4 << dendl;
     //PLRDEBUG
       // Skip the magic number at the front. PLR
-      ci++;
+      ::decode(magic,ci);
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
       ::decode(sig3_check,ci);

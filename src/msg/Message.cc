@@ -194,8 +194,9 @@ void Message::encode(uint64_t features, bool datacrc)
       dout(0) << "no signature put on message" << dendl;
       } else {
         bufferlist::iterator ci = bl_encrypted.begin();
+        uint32_t magic;
         // Skip the magic number up front. PLR
-	ci++;
+	::decode(magic, ci);
         ::decode(footer.sig1,ci);
         ::decode(footer.sig2,ci);
         ::decode(footer.sig3,ci);
