@@ -259,7 +259,6 @@ void Message::dump(Formatter *f) const
 Message *decode_message(CephContext *cct, ceph_msg_header& header, ceph_msg_footer& footer,
 			bufferlist& front, bufferlist& middle, bufferlist& data)
 {
-  ldout(cct, 0) << "decode_message:  checking CRCs" << dendl;
   // verify crc
   if (!cct || !cct->_conf->ms_nocrc) {
     __u32 front_crc = front.crc32c(0);
