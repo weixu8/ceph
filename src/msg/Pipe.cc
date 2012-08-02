@@ -1565,12 +1565,12 @@ int Pipe::read_message(Message **pm)
   if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
     // Encrypt the buffer containing the checksums. PLR
     // PLRDEBUG
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "Checking a signature " << dendl;
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " Checking a signature " << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    header.crc "  << header.crc << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    footer.middle_crc " << footer.middle_crc << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    footer.data_crc " << footer.data_crc << dendl;
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    header.crc "  << header.crc << dendl;
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.middle_crc " << footer.middle_crc << dendl;
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.data_crc " << footer.data_crc << dendl;
     //PLRDEBUG
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
     // If the encryption was error-free, grab the signature from the message and compare it.
@@ -1603,8 +1603,11 @@ int Pipe::read_message(Message **pm)
    sig4_check != footer.sig4 ) {
 	// Should have been signed, but signature check failed.  PLR
         ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " message signature does not match" << dendl;
+#if 0
+	// Once signatures work, make sure this goes back in.  PLR
         ret = -EINVAL;
         goto out_dethrottle;
+#endif
       } else 
 	{
           ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << "Signature matches!" << dendl;
