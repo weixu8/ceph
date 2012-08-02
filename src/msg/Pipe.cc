@@ -29,7 +29,7 @@
 #include "auth/cephx/CephxProtocol.h"
 
 #define dout_subsys ceph_subsys_ms
-// constant to limit starting sequence number to 2^31
+// Constant to limit starting sequence number to 2^31.  Nothing magic about it, just a big number.  PLR
 #define MAX_SEQ_START  2147483648
 
 #undef dout_prefix
@@ -872,7 +872,9 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
+#if 0
         ldout(msgr->cct,10) << "SIGN: Setting connection session key " <<  dendl;
+#endif
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
@@ -1603,7 +1605,9 @@ int Pipe::read_message(Message **pm)
 #endif
       } else 
 	{
+#if 0
           ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Signature matches!" << dendl;
+#endif
 	}
     }
     }

@@ -206,11 +206,13 @@ void Message::encode(uint64_t features, bool datacrc)
 #endif
       }
     }
+#if 0
     else 
 	if (connection->authorize_handler == NULL)
 		dout (0) << "SIGN: Connection's authorize handler is NULL; protocol is "<<connection->protocol  << dendl;
 	else
 		dout(0) << "SIGN: Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
+#endif
   }
 
 

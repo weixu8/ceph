@@ -2171,7 +2171,9 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
       // Maybe we can just get by with the protocol, though.  Add code to Pipe.cc to find out.
 	  con->protocol = protocol;
 //PLRDEBUG
+#if 0
 	  dout(0) << "SIGN: MON: Setting session key "<< dendl;
+#endif
 //PLRDEBUG
 	  con->session_key = auth_ticket_info.session_key;
 #if 0

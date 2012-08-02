@@ -2038,7 +2038,9 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
       // Attach the protocol, the session key, and the authorize handler to the connection  PLR
       con->protocol = protocol;
 //PLRDEBUG
+#if 0
       dout(10) << "SIGN: MDS: Setting session key " << dendl;
+#endif
 //PLRDEBUG
       con->session_key = session_key;
       con->authorize_handler = authorize_handler;
