@@ -179,20 +179,17 @@ void Message::encode(uint64_t features, bool datacrc)
       bufferlist bl_plaintext,bl_encrypted;
       ceph_msg_footer en_footer;
       std::string error;
-#if 0
-     // Code doesn't calculate header CRC, so don't use it in the signature.  PLR
-      ::encode((__le32)header.crc,bl_plaintext);
-#endif
       en_footer = get_footer();
       // Put msg sequence number in the signature.  PLR
       ::encode(get_seq(),bl_plaintext);
       ::encode((__le32)en_footer.front_crc,bl_plaintext);
       ::encode((__le32)en_footer.middle_crc,bl_plaintext);
       ::encode((__le32)en_footer.data_crc,bl_plaintext);
-//PLRDEBUG
+
+#if 0
     dout (0) << "SIGN: MSG " << header.seq << ": Trying to create a signature" << dendl;
     dout (0) << "SIGN: MSG " << header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << dendl;
-//PLRDEBUG
+#endif
       encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
       if (!error.empty()) {
       dout(0) << "error encrypting message signature: " << error << dendl;
@@ -204,18 +201,16 @@ void Message::encode(uint64_t features, bool datacrc)
 	::decode(magic, ci);
         ::decode(footer.sig1,ci);
         ::decode(footer.sig2,ci);
-//PLRDEBUG
+#if 0
 	dout(0) << "SIGN: MSG " << header.seq << " Putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << dendl;
-//PLRDEBUG
+#endif
       }
     }
-//PLRDEBUG
     else 
 	if (connection->authorize_handler == NULL)
 		dout (0) << "SIGN: Connection's authorize handler is NULL; protocol is "<<connection->protocol  << dendl;
 	else
 		dout(0) << "SIGN: Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
-//PLRDEBUG
   }
 
 

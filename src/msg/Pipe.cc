@@ -1569,16 +1569,6 @@ int Pipe::read_message(Message **pm)
 
   if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
     // Encrypt the buffer containing the checksums. PLR
-    // PLRDEBUG
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " Checking a signature " << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
-#if 0
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    header.crc "  << header.crc << dendl;
-#endif
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.middle_crc " << footer.middle_crc << dendl;
-    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.data_crc " << footer.data_crc << dendl;
-    //PLRDEBUG
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
     // If the encryption was error-free, grab the signature from the message and compare it.
 
@@ -1589,22 +1579,21 @@ int Pipe::read_message(Message **pm)
     } else {
       bufferlist::iterator ci = bl_ciphertext.begin();
       uint32_t magic, sig1_check,sig2_check;
-    //PLRDEBUG
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " preparing to decode a signature: " << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2 " << footer.sig2 << dendl;
-    //PLRDEBUG
       // Skip the magic number at the front. PLR
       ::decode(magic,ci);
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " locally calculated signature:" << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 ) {
 	// Should have been signed, but signature check failed.  PLR
         ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " message signature does not match" << dendl;
+    //PLRDEBUG
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2 " << footer.sig2 << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
+    //PLRDEBUG
 #if 0
 	// Once signatures work, make sure this goes back in.  PLR
         ret = -EINVAL;
@@ -1612,7 +1601,7 @@ int Pipe::read_message(Message **pm)
 #endif
       } else 
 	{
-          ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << "Signature matches!" << dendl;
+          ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Signature matches!" << dendl;
 	}
     }
     }
