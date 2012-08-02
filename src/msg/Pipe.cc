@@ -867,7 +867,7 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
-        ldout(msgr->cct,10) << "SIGN: Setting connection session key " << dendl;
+        ldout(msgr->cct,10) << "SIGN: Setting connection session key to "<< authorizer->session_key.get_secret().c_str() <<  dendl;
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
@@ -1562,6 +1562,7 @@ int Pipe::read_message(Message **pm)
   if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
     // Encrypt the buffer containing the checksums. PLR
     // PLRDEBUG
+    ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "Checking a signature " << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    header.crc "  << header.crc << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG" << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
@@ -1590,7 +1591,7 @@ int Pipe::read_message(Message **pm)
       ::decode(sig2_check,ci);
       ::decode(sig3_check,ci);
       ::decode(sig4_check,ci);
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
+      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " locally calculated signature:" << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig3_check:" << sig3_check << dendl;
