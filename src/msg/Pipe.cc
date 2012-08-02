@@ -1548,7 +1548,10 @@ int Pipe::read_message(Message **pm)
   //  works out, check the signature.  PLR
   //
 
+#if 0
+  // Code doesn't currently generate or check header crc, so we shouldn't sign it.  PLR
   ::encode((__le32)header.crc,bl_plaintext);
+#endif
   ::encode((__le32)footer.front_crc,bl_plaintext);
   ::encode((__le32)footer.middle_crc,bl_plaintext);
   ::encode((__le32)footer.data_crc,bl_plaintext);
@@ -1567,7 +1570,9 @@ int Pipe::read_message(Message **pm)
     // PLRDEBUG
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " Checking a signature " << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << ": preparing to encrypt a signature check: " << dendl;
+#if 0
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    header.crc "  << header.crc << dendl;
+#endif
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.front_crc " << footer.front_crc << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.middle_crc " << footer.middle_crc << dendl;
     ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    footer.data_crc " << footer.data_crc << dendl;
@@ -1581,28 +1586,21 @@ int Pipe::read_message(Message **pm)
       goto out_dethrottle;
     } else {
       bufferlist::iterator ci = bl_ciphertext.begin();
-      uint32_t magic, sig1_check,sig2_check,sig3_check,sig4_check;
+      uint32_t magic, sig1_check,sig2_check;
     //PLRDEBUG
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " preparing to decode a signature: " << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2 " << footer.sig2 << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig3 " << footer.sig3 << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig4 " << footer.sig4 << dendl;
     //PLRDEBUG
       // Skip the magic number at the front. PLR
       ::decode(magic,ci);
       ::decode(sig1_check,ci);
       ::decode(sig2_check,ci);
-      ::decode(sig3_check,ci);
-      ::decode(sig4_check,ci);
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << " locally calculated signature:" << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig3_check:" << sig3_check << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig4_check:" << sig4_check << dendl;
-      if (sig1_check != footer.sig1 || sig2_check != footer.sig2 || sig3_check != footer.sig3 ||
-   sig4_check != footer.sig4 ) {
+      if (sig1_check != footer.sig1 || sig2_check != footer.sig2 ) {
 	// Should have been signed, but signature check failed.  PLR
         ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " message signature does not match" << dendl;
 #if 0
