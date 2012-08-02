@@ -867,7 +867,7 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
-        ldout(msgr->cct,10) << "SIGN: Setting connection session key to  " << authorizer->session_key.secret << dendl;
+        ldout(msgr->cct,10) << "SIGN: Setting connection session key " << dendl;
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
