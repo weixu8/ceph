@@ -64,10 +64,13 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
   if (con) {
     connection_state = con->get();
     connection_state->reset_pipe(this);
+  // Create random starting sequence numbers for security purposes.  PLR
+    out_seq = get_random(0,sizeof(uint64_t));
+    lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   } else {
     connection_state = new Connection();
     connection_state->pipe = get();
-  // Create random starting sequence numbers for security purposes.  
+  // Create random starting sequence numbers for security purposes.  PLR
     out_seq = get_random(0,sizeof(uint64_t));
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   }
@@ -867,7 +870,7 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
-        ldout(msgr->cct,10) << "SIGN: Setting connection session key to "<< authorizer->session_key.get_secret().c_str() <<  dendl;
+        ldout(msgr->cct,10) << "SIGN: Setting connection session key " <<  dendl;
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
@@ -1065,7 +1068,7 @@ void Pipe::was_session_reset()
 
   msgr->dispatch_queue.queue_remote_reset(connection_state);
 
-// Set out_seq to a random value, so CRC won't be predictable
+// Set out_seq to a random value, so CRC won't be predictable PLR
   out_seq = get_random(0,sizeof(uint64_t));
   in_seq = 0;
   connect_seq = 0;
