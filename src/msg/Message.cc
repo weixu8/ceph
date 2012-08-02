@@ -195,7 +195,7 @@ void Message::encode(uint64_t features, bool datacrc)
       } else {
         bufferlist::iterator ci = bl_encrypted.begin();
         // Skip the magic number up front. PLR
-	ci++:
+	ci++;
         ::decode(footer.sig1,ci);
         ::decode(footer.sig2,ci);
         ::decode(footer.sig3,ci);
