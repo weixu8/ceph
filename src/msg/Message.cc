@@ -180,10 +180,12 @@ void Message::encode(uint64_t features, bool datacrc)
       ceph_msg_footer en_footer;
       std::string error;
 #if 0
-      / Code doesn't calculate header CRC, so don't use it in the signature.  PLR
+     // Code doesn't calculate header CRC, so don't use it in the signature.  PLR
       ::encode((__le32)header.crc,bl_plaintext);
 #endif
       en_footer = get_footer();
+      // Put msg sequence number in the signature.  PLR
+      ::encode(get_seq(),bl_plaintext);
       ::encode((__le32)en_footer.front_crc,bl_plaintext);
       ::encode((__le32)en_footer.middle_crc,bl_plaintext);
       ::encode((__le32)en_footer.data_crc,bl_plaintext);

@@ -1552,6 +1552,8 @@ int Pipe::read_message(Message **pm)
   // Code doesn't currently generate or check header crc, so we shouldn't sign it.  PLR
   ::encode((__le32)header.crc,bl_plaintext);
 #endif
+  // Put sequence number in signature check.  PLR
+  ::encode(message->get_seq(),bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
   ::encode((__le32)footer.middle_crc,bl_plaintext);
   ::encode((__le32)footer.data_crc,bl_plaintext);
