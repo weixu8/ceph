@@ -177,13 +177,13 @@ void Message::encode(uint64_t features, bool datacrc)
 
   if (connection->protocol == CEPH_AUTH_CEPHX ) {
       bufferlist bl_plaintext,bl_encrypted;
-      ceph_msg_footer footer;
+      ceph_msg_footer en_footer;
       std::string error;
       ::encode((__le32)header.crc,bl_plaintext);
-      footer = get_footer();
-      ::encode((__le32)footer.front_crc,bl_plaintext);
-      ::encode((__le32)footer.middle_crc,bl_plaintext);
-      ::encode((__le32)footer.data_crc,bl_plaintext);
+      en_footer = get_footer();
+      ::encode((__le32)en_footer.front_crc,bl_plaintext);
+      ::encode((__le32)en_footer.middle_crc,bl_plaintext);
+      ::encode((__le32)en_footer.data_crc,bl_plaintext);
 //PLRDEBUG
     dout (0) << "SIGN: MSG " << header.seq << ": Trying to create a signature" << dendl;
     dout (0) << "SIGN: MSG " << header.seq << " CRCs are: header " << header.crc << " front " << footer.front_crc << " middle " << footer.middle_crc << " data " << footer.data_crc  << dendl;
