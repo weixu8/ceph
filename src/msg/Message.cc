@@ -203,7 +203,7 @@ void Message::encode(uint64_t features, bool datacrc)
         ::decode(footer.sig1,ci);
         ::decode(footer.sig2,ci);
 //PLRDEBUG
-	dout(0) << "SIGN: MSG " << header.seq << " Putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << " << dendl;
+	dout(0) << "SIGN: MSG " << header.seq << " Putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << dendl;
 //PLRDEBUG
       }
     }
