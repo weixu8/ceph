@@ -2020,9 +2020,10 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
   AuthCapsInfo caps_info;
   EntityName name;
   uint64_t global_id;
+  CryptoKey  session_key;
 
   is_valid = authorize_handler->verify_authorizer(cct, monc->rotating_secrets,
-						  authorizer_data, authorizer_reply, name, global_id, caps_info);
+						  authorizer_data, authorizer_reply, name, global_id, caps_info, session_key);
 
   if (is_valid) {
     // wire up a Session* to this connection, and add it to the session map
@@ -2034,6 +2035,14 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
       s->inst.name = n;
       dout(10) << " new session " << s << " for " << s->inst << dendl;
       con->set_priv(s);
+      // Attach the protocol and session key to the connection for later authentication.  PLR
+      con->protocol = protocol;
+//PLRDEBUG
+#if 0
+      dout(10) << "SIGN: MDS: Setting session key " << dendl;
+#endif
+//PLRDEBUG
+      con->session_key = session_key;
       s->connection = con;
       sessionmap.add_session(s);
     } else {

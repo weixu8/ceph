@@ -113,6 +113,6 @@ extern void crypto_shutdown_handlers();
 extern CryptoHandler *get_crypto_handler(int type);
 
 extern int get_random_bytes(char *buf, int len);
-
+extern uint64_t get_random(uint64_t min_val, uint64_t max_val);
 
 #endif
