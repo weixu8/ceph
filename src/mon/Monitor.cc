@@ -2165,10 +2165,7 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
 	int ret = cephx_verify_authorizer(g_ceph_context, &keyring, iter,
 					  auth_ticket_info, authorizer_reply);
 	if (ret >= 0) {
-      // We'll need to do something about the authorize handler assignment below, since
-      // as things stand, we do not have access to what the authorize handler should be.  PLR
-      // Save the protocol and session key from the ticket into the connection object PLR
-      // Maybe we can just get by with the protocol, though.  Add code to Pipe.cc to find out.
+	  // Keep the protocol and session key for this authorizer, for later authentication PLR
 	  con->protocol = protocol;
 //PLRDEBUG
 #if 0
@@ -2176,13 +2173,6 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
 #endif
 //PLRDEBUG
 	  con->session_key = auth_ticket_info.session_key;
-#if 0
-	  // No authorize handler directly available here.  Can we get one?  PLR
-	  // The monitor class allows us to get an authorizer.  From that, can we get a handler?
-	  // I'll look into this later.
-
-          con->authorize_handler = authorize_handler;
-#endif
 	  isvalid = true;
 	} else
 	  dout(0) << "ms_verify_authorizer bad authorizer from mon " << con->get_peer_addr() << dendl;

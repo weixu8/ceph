@@ -2035,7 +2035,7 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
       s->inst.name = n;
       dout(10) << " new session " << s << " for " << s->inst << dendl;
       con->set_priv(s);
-      // Attach the protocol, the session key, and the authorize handler to the connection  PLR
+      // Attach the protocol and session key to the connection for later authentication.  PLR
       con->protocol = protocol;
 //PLRDEBUG
 #if 0
@@ -2043,7 +2043,6 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
 #endif
 //PLRDEBUG
       con->session_key = session_key;
-      con->authorize_handler = authorize_handler;
       s->connection = con;
       sessionmap.add_session(s);
     } else {

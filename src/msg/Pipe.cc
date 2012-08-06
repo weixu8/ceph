@@ -878,11 +878,6 @@ int Pipe::connect()
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
-// We probably need to get a handler for this protocol, which requires access to an
-// AuthAuthorizeHandlerRegistry.  Not clear how we get that here.  The OSD, MDS, and
-// MonClient code all set one up.  PLR
-
-//      connection_state->authorize_handler = get_handler(authorizer->protocol);
     } else
     {
       ldout(msgr->cct,10) << "authorizer pointer is NULL " << dendl;
@@ -1548,15 +1543,15 @@ int Pipe::read_message(Message **pm)
   //  access to the session key for this connection, which is in the connection data
   //  structure attached to the pipe.  So we check the signature at this point, instead,
   //  since now we have the connection pointer.  Put the checksums into a buffer, ensure we 
-  //  have a connection pointer, make sure this is a message we should sign, and, if that all
-  //  works out, check the signature.  PLR
+  //  have a connection pointer, make sure this is a message we should have signed, and, if 
+  //  that all works out, check the signature.  PLR
   //
 
 #if 0
-  // Code doesn't currently generate or check header crc, so we shouldn't sign it.  PLR
+  // Code doesn't currently check header crc, so we shouldn't sign it.  PLR
   ::encode((__le32)header.crc,bl_plaintext);
 #endif
-  // Put sequence number in signature check.  PLR
+  // Put sequence number in signature check.  Remove this if header crc is added to sig.   PLR
   ::encode(message->get_seq(),bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
   ::encode((__le32)footer.middle_crc,bl_plaintext);
@@ -1566,16 +1561,14 @@ int Pipe::read_message(Message **pm)
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
   } else {
 
-// This is a connection's message, so check if messages for this connection are being signed. PLR
-// For OSD and MDS connections, there should be an authorize_handler.  For Mon connections,
-// check if the protocol is the CEPHX protocol.  The latter is kind of half-assed and
-// should be fixed, to make it generalize to other crypto authentication protocols.  PLR
+// This is a connection's message, so check if messages for this connection is being signed. 
+// Check if the protocol is the CEPHX protocol.  This is kind of half-assed and
+// should be generalized to handle other crypto authentication protocols.  PLR
 
   if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
     // Encrypt the buffer containing the checksums. PLR
     encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
-    // If the encryption was error-free, grab the signature from the message and compare it.
-
+    // If the encryption was error-free, grab the signature from the message and compare it. PLR
     if (!sig_error.empty()) {
       ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
       ret = -EINVAL;
@@ -1589,7 +1582,7 @@ int Pipe::read_message(Message **pm)
       ::decode(sig2_check,ci);
       if (sig1_check != footer.sig1 || sig2_check != footer.sig2 ) {
 	// Should have been signed, but signature check failed.  PLR
-        ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " message signature does not match" << dendl;
+        ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
     //PLRDEBUG
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
@@ -1599,7 +1592,7 @@ int Pipe::read_message(Message **pm)
       ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
     //PLRDEBUG
 #if 0
-	// Once signatures work, make sure this goes back in.  PLR
+	// Return failure if signature does not match.  Once code works, put this back in.  PLR
         ret = -EINVAL;
         goto out_dethrottle;
 #endif

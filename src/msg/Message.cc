@@ -166,7 +166,10 @@ void Message::encode(uint64_t features, bool datacrc)
   if (datacrc) {
     calc_data_crc();
 
-    // Only put the digital signature in if we're calculating full CRC and it's a signed connection.  PLR
+    // Place digital signature in the message.  Only put it in if we're calculating full CRC 
+    // and it's a signed connection.  Currently, the signature is on the footer crcs and the
+    // message sequence number, since the header CRC is not checked.  That CRC is calculated,
+    // so probably we could use it for the signature, but need to check that.  PLR
 
   if (connection == NULL) {
      dout(0) << "No connection pointer for message signature creation" << dendl;
@@ -180,7 +183,8 @@ void Message::encode(uint64_t features, bool datacrc)
       ceph_msg_footer en_footer;
       std::string error;
       en_footer = get_footer();
-      // Put msg sequence number in the signature.  PLR
+      // Put msg sequence number in the signature.  Not necessary if we add header crc to the
+      // signature.  PLR
       ::encode(get_seq(),bl_plaintext);
       ::encode((__le32)en_footer.front_crc,bl_plaintext);
       ::encode((__le32)en_footer.middle_crc,bl_plaintext);
