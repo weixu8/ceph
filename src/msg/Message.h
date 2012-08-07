@@ -165,7 +165,7 @@ struct Connection : public RefCountedObject {
 
 public:
   Connection() : lock("Connection::lock"), priv(NULL), peer_type(-1), features(0), pipe(NULL),
-		 rx_buffers_version(0) {}
+		 rx_buffers_version(0), session_key() {}
   ~Connection() {
     //generic_dout(0) << "~Connection " << this << dendl;
     if (priv) {
