@@ -71,7 +71,7 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
     seq_error = get_random_bytes((char *) &out_seq,sizeof(out_seq));
     if (seq_error < 0) {
       lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number; setting seq number to 0. (1)" << dendl;
-      out_seq = 0;
+      throw "Pipe(): get_random_bytes failed.";
     }
     out_seq &= SEQ_MASK;
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
@@ -82,7 +82,7 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
     seq_error = get_random_bytes((char *) &out_seq,sizeof(out_seq));
     if (seq_error < 0) {
       lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number; setting seq number to 0. (2)" << dendl;
-      out_seq = 0;
+      throw "Pipe(): get_random_bytes failed.";
     }
     out_seq &= SEQ_MASK;
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
@@ -1079,7 +1079,7 @@ void Pipe::was_session_reset()
   seq_error = get_random_bytes((char *)&out_seq,sizeof(out_seq));
   if (seq_error < 0) {
     lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number for session reset; setting seq number to 0." << dendl;
-    out_seq = 0;
+    throw "was_session_reset(): get_random_bytes failed.";
   }
   out_seq &= SEQ_MASK;
   in_seq = 0;
