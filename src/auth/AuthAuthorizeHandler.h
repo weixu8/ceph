@@ -21,7 +21,7 @@
 
 // Different classes of session crypto handling
 
-#define NO_SESSION_CRYPTO 0
+#define SESSION_CRYPTO_NONE 0
 #define SESSION_SYMMETRIC_AUTHENTICATE 1
 #define SESSION_SYMMETRIC_ENCRYPT 2
 

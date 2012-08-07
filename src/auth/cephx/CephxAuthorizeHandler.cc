@@ -7,7 +7,6 @@
 #define dout_subsys ceph_subsys_auth
 
 
-// Added session key parameter to this method to allow called to obtain it.  PLR
 
 bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
 					      bufferlist& authorizer_data, bufferlist& authorizer_reply,
@@ -40,5 +39,5 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
 
 int CephxAuthorizeHandler::authorizer_session_crypto() 
 {
-return SESSION_SYMMETRIC_AUTHENTICATE;
+  return SESSION_SYMMETRIC_AUTHENTICATE;
 }

@@ -2767,11 +2767,6 @@ bool OSD::ms_verify_authorizer(Connection *con, int peer_type,
       con->set_priv(s->get());
       // Attach the protocol and the session key to the connection for later authentication. PLR
       con->protocol = protocol;
-// PLRDEBUG
-#if 0
-  dout(10) << "SIGN::OSD: Setting session key "<< dendl;
-#endif
-//PLRDEBUG
       con->session_key = session_key;
       s->con = con;
       dout(10) << " new session " << s << " con=" << s->con << " addr=" << s->con->get_peer_addr() << dendl;

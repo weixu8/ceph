@@ -43,5 +43,5 @@ uint64_t *auid)
 
 int AuthNoneAuthorizeHandler::authorizer_session_crypto() 
 {
-  return NO_SESSION_CRYPTO;
+  return SESSION_CRYPTO_NONE;
 }

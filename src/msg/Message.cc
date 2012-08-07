@@ -186,37 +186,37 @@ void Message::encode(uint64_t features, bool datacrc)
       // Put msg sequence number in the signature.  Not necessary if we add header crc to the
       // signature.  PLR
       ::encode(get_seq(),bl_plaintext);
-      ::encode((__le32)en_footer.front_crc,bl_plaintext);
-      ::encode((__le32)en_footer.middle_crc,bl_plaintext);
-      ::encode((__le32)en_footer.data_crc,bl_plaintext);
+      ::encode(en_footer.front_crc,bl_plaintext);
+      ::encode(en_footer.middle_crc,bl_plaintext);
+      ::encode(en_footer.data_crc,bl_plaintext);
 
-#if 0
-    dout (0) << "SIGN: MSG " << header.seq << ": Trying to create a signature" << dendl;
-    dout (0) << "SIGN: MSG " << header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << dendl;
-#endif
+      dout (20) <<  header.seq << ": Trying to create a signature" << dendl;
+      dout (20) <<  header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << dendl;
+
       encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
       if (!error.empty()) {
-      dout(0) << "error encrypting message signature: " << error << dendl;
-      dout(0) << "no signature put on message" << dendl;
+        dout(0) << "error encrypting message signature: " << error << dendl;
+        dout(0) << "no signature put on message" << dendl;
       } else {
         bufferlist::iterator ci = bl_encrypted.begin();
         uint32_t magic;
         // Skip the magic number up front. PLR
-	::decode(magic, ci);
-        ::decode(footer.sig1,ci);
-        ::decode(footer.sig2,ci);
-#if 0
-	dout(0) << "SIGN: MSG " << header.seq << " Putting signature in client message: sig1 " << footer.sig1 << " sig2 " << footer.sig2 << dendl;
-#endif
+        try {
+	  ::decode(magic, ci);
+        } catch (buffer::error& e) {
+	  dout(0) << "failed to decode magic number on msg " << dendl;
+        }
+        try {
+          ::decode(footer.sig,ci);
+        } catch (buffer::error& e) {
+	  dout(0) << "failed to decode signature on msg " << dendl;
+        }
+	// Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
+	// to debug problems where sender and receiver disagree on need to sign msg.  PLR
+        footer.flags = (unsigned)footer.flags | CEPH_MSG_FOOTER_SIGNED;
+	dout(20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
       }
     }
-#if 0
-    else 
-	if (connection->authorize_handler == NULL)
-		dout (0) << "SIGN: Connection's authorize handler is NULL; protocol is "<<connection->protocol  << dendl;
-	else
-		dout(0) << "SIGN: Authorizer crypto type is " << connection->authorize_handler->authorizer_session_crypto() << dendl;
-#endif
   }
 
 

@@ -173,14 +173,14 @@ struct ceph_msg_header {
  */
 struct ceph_msg_footer {
 	__le32 front_crc, middle_crc, data_crc;
-	// sig1, and sig2  hold the 64 bits of the digital signature for the message
-	// using 2 ints is stupid; once working, fix this.  PLR
-	__le32  sig1, sig2;
+	// sig holds the 64 bits of the digital signature for the message PLR
+	__le64  sig;
 	__u8 flags;
 } __attribute__ ((packed));
 
 #define CEPH_MSG_FOOTER_COMPLETE  (1<<0)   /* msg wasn't aborted */
 #define CEPH_MSG_FOOTER_NOCRC     (1<<1)   /* no data crc */
+#define CEPH_MSG_FOOTER_SIGNED	  (1<<2)   /* msg was signed */
 
 
 #endif

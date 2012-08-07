@@ -30,7 +30,7 @@
 
 #define dout_subsys ceph_subsys_ms
 // Constant to limit starting sequence number to 2^31.  Nothing magic about it, just a big number.  PLR
-#define MAX_SEQ_START  2147483648
+#define SEQ_MASK  0x7fffffff 
 
 #undef dout_prefix
 #define dout_prefix _pipe_prefix(_dout)
@@ -63,17 +63,28 @@ Pipe::Pipe(SimpleMessenger *r, int st, Connection *con)
     close_on_empty(false),
     connect_seq(0), peer_global_seq(0),
     out_seq(0), in_seq(0), in_seq_acked(0) {
+    int seq_error;
   if (con) {
     connection_state = con->get();
     connection_state->reset_pipe(this);
-  // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0,MAX_SEQ_START);
+    // Create random starting sequence numbers for security purposes.  PLR
+    seq_error = get_random_bytes((char *) &out_seq,sizeof(out_seq));
+    if (seq_error < 0) {
+      lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number; setting seq number to 0. (1)" << dendl;
+      out_seq = 0;
+    }
+    out_seq &= SEQ_MASK;
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   } else {
     connection_state = new Connection();
     connection_state->pipe = get();
-  // Create random starting sequence numbers for security purposes.  PLR
-    out_seq = get_random(0, MAX_SEQ_START);
+    // Create random starting sequence numbers for security purposes.  PLR
+    seq_error = get_random_bytes((char *) &out_seq,sizeof(out_seq));
+    if (seq_error < 0) {
+      lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number; setting seq number to 0. (2)" << dendl;
+      out_seq = 0;
+    }
+    out_seq &= SEQ_MASK;
     lsubdout(msgr->cct, ms, 15) << "set random seq number to " << out_seq << dendl;
   }
   msgr->timeout = msgr->cct->_conf->ms_tcp_read_timeout * 1000; //convert to ms
@@ -872,14 +883,10 @@ int Pipe::connect()
 // Grab the session key out of the authorizer and put it in the connection data structure PLR
 
       if (authorizer) {
-#if 0
-        ldout(msgr->cct,10) << "SIGN: Setting connection session key " <<  dendl;
-#endif
       	connection_state->session_key = authorizer->session_key;
       	connection_state->protocol = authorizer->protocol;
 
-    } else
-    {
+    } else {
       ldout(msgr->cct,10) << "authorizer pointer is NULL " << dendl;
     }
 
@@ -1060,6 +1067,7 @@ void Pipe::fail()
 
 void Pipe::was_session_reset()
 {
+  int seq_error;
   assert(pipe_lock.is_locked());
 
   ldout(msgr->cct,10) << "was_session_reset" << dendl;
@@ -1068,7 +1076,12 @@ void Pipe::was_session_reset()
   msgr->dispatch_queue.queue_remote_reset(connection_state);
 
 // Set out_seq to a random value, so CRC won't be predictable PLR
-  out_seq = get_random(0,sizeof(uint64_t));
+  seq_error = get_random_bytes((char *)&out_seq,sizeof(out_seq));
+  if (seq_error < 0) {
+    lsubdout(msgr->cct,ms,15) << "Could not get random bytes to set seq number for session reset; setting seq number to 0." << dendl;
+    out_seq = 0;
+  }
+  out_seq &= SEQ_MASK;
   in_seq = 0;
   connect_seq = 0;
 }
@@ -1378,7 +1391,7 @@ int Pipe::read_message(Message **pm)
   ceph_msg_header header; 
   ceph_msg_footer footer;
   __u32 header_crc;
-  bufferlist bl_plaintext,bl_ciphertext;
+  bufferlist bl_plaintext, bl_ciphertext;
   std::string sig_error;
   
   if (connection_state->has_feature(CEPH_FEATURE_NOSRCADDR)) {
@@ -1547,10 +1560,7 @@ int Pipe::read_message(Message **pm)
   //  that all works out, check the signature.  PLR
   //
 
-#if 0
   // Code doesn't currently check header crc, so we shouldn't sign it.  PLR
-  ::encode((__le32)header.crc,bl_plaintext);
-#endif
   // Put sequence number in signature check.  Remove this if header crc is added to sig.   PLR
   ::encode(message->get_seq(),bl_plaintext);
   ::encode((__le32)footer.front_crc,bl_plaintext);
@@ -1561,51 +1571,55 @@ int Pipe::read_message(Message **pm)
     ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
   } else {
 
-// This is a connection's message, so check if messages for this connection is being signed. 
-// Check if the protocol is the CEPHX protocol.  This is kind of half-assed and
-// should be generalized to handle other crypto authentication protocols.  PLR
+    // This is a connection's message, so check if messages for this connection is being signed. 
+    // Check if the protocol is the CEPHX protocol.  This is kind of half-assed and
+    // should be generalized to handle other crypto authentication protocols.  PLR
 
-  if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
-    // Encrypt the buffer containing the checksums. PLR
-    encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
-    // If the encryption was error-free, grab the signature from the message and compare it. PLR
-    if (!sig_error.empty()) {
-      ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
-      ret = -EINVAL;
-      goto out_dethrottle;
-    } else {
-      bufferlist::iterator ci = bl_ciphertext.begin();
-      uint32_t magic, sig1_check,sig2_check;
-      // Skip the magic number at the front. PLR
-      ::decode(magic,ci);
-      ::decode(sig1_check,ci);
-      ::decode(sig2_check,ci);
-      if (sig1_check != footer.sig1 || sig2_check != footer.sig2 ) {
-	// Should have been signed, but signature check failed.  PLR
-        ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
-    //PLRDEBUG
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1 " << footer.sig1 << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2 " << footer.sig2 << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig1_check:" << sig1_check << dendl;
-      ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig2_check:" << sig2_check << dendl;
-    //PLRDEBUG
-#if 0
-	// Return failure if signature does not match.  Once code works, put this back in.  PLR
+    if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
+      // Encrypt the buffer containing the checksums. PLR
+      encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
+      // If the encryption was error-free, grab the signature from the message and compare it. PLR
+      if (!sig_error.empty()) {
+        ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
         ret = -EINVAL;
         goto out_dethrottle;
-#endif
-      } else 
-	{
-#if 0
-          ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Signature matches!" << dendl;
-#endif
-	}
-    }
+      } else {
+        bufferlist::iterator ci = bl_ciphertext.begin();
+        uint32_t magic; 
+        uint64_t sig_check = 0;
+        // Skip the magic number at the front. PLR
+        try {
+          ::decode(magic,ci);
+        } catch (buffer::error& e) {
+	  dout(0) << "failed to decode magic number on msg " << dendl;
+        }
+        try {
+          ::decode(sig_check,ci);
+        } catch (buffer::error& e) {
+	  dout(0) << "failed to decode magic number on msg " << dendl;
+        }
+        if (sig_check != footer.sig ) {
+	  // Should have been signed, but signature check failed.  PLR
+	  if (!(footer.flags & CEPH_MSG_FOOTER_SIGNED)) {
+            ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Sender did not set CEPH_MSG_FOOTER_SIGNED." << dendl;
+	  }
+          ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
+          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
+          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig " << footer.sig << dendl;
+          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
+          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig_check:" << sig_check << dendl;
+	
+	  // For the moment, printing an error message to the log and returning failure is sufficient.
+          // In the long term, we should probably have code parsing the log looking for this kind
+          // of security failure, particularly when there are large numbers of them, since the latter
+          // is a potential sign of an attack.  PLR
+
+          ret = -EINVAL;
+          goto out_dethrottle;
+        } 
+      }
     }
   }
-
 
   message->set_throttler(policy.throttler);
 
