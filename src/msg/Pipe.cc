@@ -29,7 +29,7 @@
 #include "auth/cephx/CephxProtocol.h"
 
 #define dout_subsys ceph_subsys_ms
-// Constant to limit starting sequence number to 2^31.  Nothing magic about it, just a big number.  PLR
+// Constant to limit starting sequence number to 2^31.  Nothing special about it, just a big number.  PLR
 #define SEQ_MASK  0x7fffffff 
 
 #undef dout_prefix
