@@ -4178,6 +4178,8 @@ boost::statechart::result PG::RecoveryState::Active::react(const MNotifyRec& not
 	     << ", calling proc_replica_info and discover_all_missing"
 	     << dendl;
     pg->proc_replica_info(notevt.from, notevt.info);
+    pg_missing_t empty_missing;
+    pg->search_for_missing(notevt.info, &empty_missing, notevt.from);
     if (pg->have_unfound()) {
       pg->discover_all_missing(*context< RecoveryMachine >().get_query_map());
     }
