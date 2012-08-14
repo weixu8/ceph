@@ -4,6 +4,19 @@
 #include "include/utime.h"
 #include <unistd.h>
 #include <tr1/memory>
+#include "common/Mutex.h"
+#include "common/Cond.h"
+
+template<typename T>
+struct C_Holder : public Context {
+  T obj;
+  C_Holder(
+    T obj)
+    : obj(obj) {}
+  void finish(int r) {
+    return;
+  }
+};
 
 struct OnDelete {
   Context *c;
@@ -69,6 +82,60 @@ void Bencher::complete_op() {
   assert(open_ops > 0);
   --open_ops;
   open_ops_cond.Signal();
+}
+
+struct OnFinish {
+  bool *done;
+  Mutex *lock;
+  Cond *cond;
+  OnFinish(
+    bool *done,
+    Mutex *lock,
+    Cond *cond) :
+    done(done), lock(lock), cond(cond) {}
+  ~OnFinish() {
+    Mutex::Locker l(*lock);
+    *done = true;
+    cond->Signal();
+  }
+};
+
+void Bencher::init(
+  const set<std::string> &objects,
+  uint64_t size,
+  std::ostream *out
+  )
+{
+  bufferlist bl;
+  for (uint64_t i = 0; i < size; ++i) {
+    bl.append(0);
+  }
+  Mutex lock("init_lock");
+  Cond cond;
+  bool done = 0;
+  {
+    std::tr1::shared_ptr<OnFinish> on_finish(
+      new OnFinish(&done, &lock, &cond));
+    uint64_t num = 0;
+    for (set<std::string>::const_iterator i = objects.begin();
+	 i != objects.end();
+	 ++i, ++num) {
+      if (!(num % 20))
+	*out << "Creating " << num << "/" << objects.size() << std::endl;
+      backend->write(
+	*i,
+	0,
+	bl,
+	new C_Holder<std::tr1::shared_ptr<OnFinish> >(on_finish),
+	new C_Holder<std::tr1::shared_ptr<OnFinish> >(on_finish)
+	);
+    }
+  }
+  {
+    Mutex::Locker l(lock);
+    while (!done)
+      cond.Wait(lock);
+  }
 }
 
 void Bencher::run_bench()
