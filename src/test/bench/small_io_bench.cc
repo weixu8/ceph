@@ -51,6 +51,10 @@ int main(int argc, char **argv)
      "set pool")
     ("op-dump-file", po::value<string>()->default_value(""),
      "set file for dumping op details, omit for stderr")
+    ("init-only", po::value<bool>()->default_value(false),
+     "populate object set")
+    ("use-prefix", po::value<string>()->default_value(""),
+     "use previously populated prefix")
     ;
 
   po::variables_map vm;
@@ -62,15 +66,28 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  char hostname_cstr[100];
-  gethostname(hostname_cstr, 100);
-  stringstream hostpid;
-  hostpid << hostname_cstr << getpid() << "-";
+  if (vm["init-only"].as<bool>() && !vm["use-prefix"].as<string>().size()) {
+    cout << "Must supply prefix for init-only" << std::endl;
+    cout << desc << std::endl;
+    return 1;
+  }
+
+  string prefix;
+  if (vm["use-prefix"].as<string>().size()) {
+    prefix = vm["use_prefix"].as<string>();
+  } else {
+    char hostname_cstr[100];
+    gethostname(hostname_cstr, 100);
+    stringstream hostpid;
+    hostpid << hostname_cstr << getpid() << "-";
+    prefix = hostpid.str();
+  }
+
   set<string> objects;
   for (unsigned i = 0; i < vm["num-objects"].as<unsigned>();
        ++i) {
     stringstream name;
-    name << hostpid.str() << "-object_" << i;
+    name << prefix << "-object_" << i;
     objects.insert(name.str());
   }
 
@@ -110,21 +127,6 @@ int main(int argc, char **argv)
     return -r;
   }
 
-  cout << "Creating objects.." << std::endl;
-  uint64_t num = 0;
-  bufferlist bl;
-  for (uint64_t i = 0; i < vm["object-size"].as<unsigned>(); ++i) {
-    bl.append(0);
-  }
-  for (set<string>::iterator i = objects.begin();
-       i != objects.end();
-       ++i, ++num) {
-    if (!(num % 20))
-      cout << "Creating " << num << "/" << objects.size() << std::endl;
-    ioctx.write(*i, bl, bl.length(), 0);
-  }
-  cout << "Created objects..." << std::endl;
-
   ostream *detailed_ops = 0;
   ofstream myfile;
   if (vm["op-dump-file"].as<string>().size()) {
@@ -133,7 +135,6 @@ int main(int argc, char **argv)
   } else {
     detailed_ops = &cerr;
   }
-
   Bencher bencher(
     new RandomDist<string>(rng, objects),
     new UniformRandom(
@@ -147,9 +148,16 @@ int main(int argc, char **argv)
     vm["num-concurrent-ops"].as<unsigned>(),
     vm["duration"].as<unsigned>(),
     vm["max-ops"].as<unsigned>());
+  
 
-  bencher.run_bench();
-
+  if (vm["init-only"].as<bool>() || !vm["use-prefix"].as<string>().size()) {
+    cout << "Creating objects.." << std::endl;
+    bencher.init(objects, vm["object-size"].as<unsigned>(), &std::cout);
+    cout << "Created objects..." << std::endl;
+  }
+  if (!vm["init-only"].as<bool>()) {
+    bencher.run_bench();
+  }
   rados.shutdown();
   if (vm["op-dump-file"].as<string>().size()) {
     myfile.close();

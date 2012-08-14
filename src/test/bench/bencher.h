@@ -61,6 +61,12 @@ public:
     open_ops(0)
   {}
 
+  void init(
+    const set<std::string> &objects,
+    uint64_t size,
+    std::ostream *out
+    );
+
   void run_bench();
   friend class OnWriteApplied;
   friend class OnWriteCommit;
