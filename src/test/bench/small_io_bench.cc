@@ -55,6 +55,8 @@ int main(int argc, char **argv)
      "populate object set")
     ("use-prefix", po::value<string>()->default_value(""),
      "use previously populated prefix")
+    ("offset-align", po::value<unsigned>()->default_value(1),
+     "align offset by")
     ;
 
   po::variables_map vm;
@@ -137,10 +139,13 @@ int main(int argc, char **argv)
   }
   Bencher bencher(
     new RandomDist<string>(rng, objects),
-    new UniformRandom(
-      rng,
-      0,
-      vm["object-size"].as<unsigned>() - vm["io-size"].as<unsigned>()),
+    new Align(
+      new UniformRandom(
+	rng,
+	0,
+	vm["object-size"].as<unsigned>() - vm["io-size"].as<unsigned>()),
+      vm["offset-align"].as<unsigned>()
+      ),
     new Uniform(vm["io-size"].as<unsigned>()),
     new WeightedDist<Bencher::OpType>(rng, ops),
     new DetailedStatCollector(1, new JSONFormatter, detailed_ops, &cout),
