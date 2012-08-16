@@ -18,6 +18,14 @@
 #include "Mutex.h"
 #include "Cond.h"
 #include "Thread.h"
+#include "common/perf_counters.h"
+
+enum {
+  l_wq_first = 31337,
+  l_wq_enqueued,
+  l_wq_dequeued,
+  l_wq_last,
+};
 
 class CephContext;
 
@@ -122,6 +130,7 @@ public:
   template<class T>
   class WorkQueue : public WorkQueue_ {
     ThreadPool *pool;
+    PerfCounters *logger;
     
     virtual bool _enqueue(T *) = 0;
     virtual void _dequeue(T *) = 0;
@@ -142,6 +151,13 @@ public:
   public:
     WorkQueue(string n, time_t ti, time_t sti, ThreadPool* p) : WorkQueue_(n, ti, sti), pool(p) {
       pool->add_work_queue(this);
+
+      PerfCountersBuilder b(p->cct, string("wq-") + n, l_wq_first, l_wq_last);
+      b.add_u64_counter(l_wq_enqueued, "enqueued");
+      b.add_u64_counter(l_wq_dequeued, "dequeued");
+
+      logger = b.create_perf_counters();
+      p->cct->get_perfcounters_collection()->add(logger);
     }
     ~WorkQueue() {
       pool->remove_work_queue(this);
@@ -165,6 +181,14 @@ public:
       pool->_lock.Unlock();
     }
 
+    void enqueued() {
+      logger->inc(l_wq_enqueued);
+    }
+
+    void dequeued() {
+      logger->inc(l_wq_dequeued);
+    }
+
     void lock() {
       pool->lock();
     }
@@ -181,6 +205,10 @@ public:
     }
     void drain() {
       pool->drain(this);
+    }
+
+    void dump_perf(bufferlist &out) {
+      logger->write_json_to_buf(out, false);
     }
 
   };
