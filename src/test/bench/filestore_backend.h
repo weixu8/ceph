@@ -12,9 +12,10 @@ class FileStoreBackend : public Backend {
   ObjectStore *os;
   Finisher finisher;
   map<string, ObjectStore::Sequencer> osrs;
+  const bool write_infos;
 
 public:
-  FileStoreBackend(ObjectStore *os);
+  FileStoreBackend(ObjectStore *os, bool write_infos);
   ~FileStoreBackend() {
     finisher.stop();
   }

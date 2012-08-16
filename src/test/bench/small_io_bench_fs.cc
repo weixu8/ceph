@@ -56,6 +56,10 @@ int main(int argc, char **argv)
      "path to filestore directory, mandatory")
     ("journal-path", po::value<string>(),
      "path to journal, mandatory")
+    ("offset-align", po::value<unsigned>()->default_value(4096),
+     "align offset by")
+    ("write-infos", po::value<bool>()->default_value(false),
+      "write info objects with main writes")
     ;
 
   po::variables_map vm;
@@ -113,11 +117,9 @@ int main(int argc, char **argv)
     bl.append(0);
   }
   set<string> objects;
+
   for (uint64_t num = 0; num < vm["num-objects"].as<unsigned>(); ++num) {
     unsigned col_num = num % vm["num-colls"].as<unsigned>();
-    if (!(num % 20))
-      cout << "Creating " << num << "/" << vm["num-objects"].as<unsigned>()
-	   << std::endl;
     stringstream coll, obj;
     coll << "collection_" << col_num;
     obj << "obj_" << num;
@@ -126,15 +128,15 @@ int main(int argc, char **argv)
       if (num == col_num) { // create collection
 	t.create_collection(coll_t(coll.str()));
       }
-      t.write(
-	coll_t(coll.str()),
-	hobject_t(sobject_t(obj.str(), 0)),
-	0, bl.length(), bl);
       fs.apply_transaction(t);
     }
     objects.insert(coll.str() + "/" + obj.str());
   }
-  cout << "Created objects..." << std::endl;
+  {
+    ObjectStore::Transaction t;
+    t.create_collection(coll_t(string("meta")));
+    fs.apply_transaction(t);
+  }
 
   ostream *detailed_ops = 0;
   ofstream myfile;
@@ -147,17 +149,23 @@ int main(int argc, char **argv)
 
   Bencher bencher(
     new RandomDist<string>(rng, objects),
-    new UniformRandom(
-      rng,
-      0,
-      vm["object-size"].as<unsigned>() - vm["io-size"].as<unsigned>()),
+    new Align(
+      new UniformRandom(
+	rng,
+	0,
+	vm["object-size"].as<unsigned>() - vm["io-size"].as<unsigned>()),
+      vm["offset-align"].as<unsigned>()
+      ),
     new Uniform(vm["io-size"].as<unsigned>()),
     new WeightedDist<Bencher::OpType>(rng, ops),
     new DetailedStatCollector(1, new JSONFormatter, detailed_ops, &cout),
-    new FileStoreBackend(&fs),
+    new FileStoreBackend(&fs, vm["write-infos"].as<bool>()),
     vm["num-concurrent-ops"].as<unsigned>(),
     vm["duration"].as<unsigned>(),
     vm["max-ops"].as<unsigned>());
+
+  bencher.init(objects, vm["object-size"].as<unsigned>(), &std::cout);
+  cout << "Created objects..." << std::endl;
 
   bencher.run_bench();
 

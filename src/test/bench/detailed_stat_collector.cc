@@ -30,29 +30,43 @@ static utime_t cur_time()
 }
 
 DetailedStatCollector::Aggregator::Aggregator()
-  : size(0), latency(0), ops(0)
-{
-  last = cur_time();
-}
+  : recent_size(0), total_size(0), recent_latency(0),
+    total_latency(0), recent_ops(0), total_ops(0), started(false)
+{}
 
 void DetailedStatCollector::Aggregator::add(const Op &op)
 {
-  ++ops;
-  size += op.size;
-  latency += op.latency;
+  if (!started) {
+    last = first = cur_time();
+    started = true;
+  }
+  ++recent_ops;
+  ++total_ops;
+  recent_size += op.size;
+  total_size += op.size;
+  recent_latency += op.latency;
+  total_latency += op.latency;
 }
 
 void DetailedStatCollector::Aggregator::dump(Formatter *f)
 {
   utime_t now = cur_time();
   f->dump_stream("time") << now;
-  f->dump_float("avg latency", latency / ops);
-  f->dump_float("avg iops", ops / (now - last));
-  f->dump_float("avg throughput", size / (now - last));
+  f->dump_float("avg_recent_latency", recent_latency / recent_ops);
+  f->dump_float("avg_total_latency", total_latency / total_ops);
+  f->dump_float("avg_recent_iops", recent_ops / (now - last));
+  f->dump_float("avg_total_iops", total_ops / (now - first));
+  f->dump_float("avg_recent_throughput", recent_size / (now - last));
+  f->dump_float("avg_total_throughput", total_size / (now - first));
+  f->dump_float("avg_recent_throughput_mb",
+		(recent_size / (now - last)) / (1024*1024));
+  f->dump_float("avg_total_throughput_mb",
+		(total_size / (now - first)) / (1024*1024));
+  f->dump_float("duration", now - last);
   last = now;
-  latency = 0;
-  size = 0;
-  ops = 0;
+  recent_latency = 0;
+  recent_size = 0;
+  recent_ops = 0;
 }
 
 DetailedStatCollector::DetailedStatCollector(

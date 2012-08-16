@@ -17,8 +17,8 @@ struct C_DeleteTransWrapper : public Context {
 };
 
 FileStoreBackend::FileStoreBackend(
-  ObjectStore *os)
-  : os(os), finisher(g_ceph_context)
+  ObjectStore *os, bool write_infos)
+  : os(os), finisher(g_ceph_context), write_infos(write_infos)
 {
   finisher.start();
 }
@@ -44,6 +44,15 @@ void FileStoreBackend::write(
   coll_t c(coll_str);
   hobject_t h(sobject_t(oid.substr(sep+1), 0));
   t->write(c, h, offset, bl.length(), bl);
+
+  if (write_infos) {
+    bufferlist bl2;
+    for (uint64_t j = 0; j < 128; ++j) bl2.append(0);
+    coll_t meta("meta");
+    hobject_t info(sobject_t(string("info_")+coll_str, 0));
+    t->write(meta, info, 0, bl2.length(), bl2);
+  }
+
   os->queue_transaction(
     osr,
     t,
