@@ -10,6 +10,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/uniform_real.hpp>
+#include <boost/scoped_ptr.hpp>
 
 typedef boost::mt11213b rngen_t;
 
@@ -89,6 +90,18 @@ public:
     rng(rng), min(min), max(max) {}
   virtual uint64_t operator()() {
     return boost::uniform_int<>(min, max)(rng);
+  }
+};
+
+class Align : public Distribution<uint64_t> {
+  boost::scoped_ptr<Distribution<uint64_t> > dist;
+  uint64_t align;
+public:
+  Align(Distribution<uint64_t> *dist, uint64_t align) : 
+    dist(dist), align(align) {}
+  virtual uint64_t operator()() {
+    uint64_t ret = (*dist)();
+    return ret - (ret % align);
   }
 };
 
