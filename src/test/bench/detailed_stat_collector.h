@@ -32,10 +32,15 @@ class DetailedStatCollector : public StatCollector {
     void dump(ostream *out, Formatter *f);
   };
   class Aggregator {
-    uint64_t size;
-    double latency;
+    uint64_t recent_size;
+    uint64_t total_size;
+    double recent_latency;
+    double total_latency;
     utime_t last;
-    uint64_t ops;
+    utime_t first;
+    uint64_t recent_ops;
+    uint64_t total_ops;
+    bool started;
   public:
     Aggregator();
     

@@ -55,7 +55,7 @@ int main(int argc, char **argv)
      "populate object set")
     ("use-prefix", po::value<string>()->default_value(""),
      "use previously populated prefix")
-    ("offset-align", po::value<unsigned>()->default_value(1),
+    ("offset-align", po::value<unsigned>()->default_value(4096),
      "align offset by")
     ;
 
