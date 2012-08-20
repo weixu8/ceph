@@ -22,7 +22,7 @@
 #include "distribution.h"
 #include "global/global_init.h"
 #include "os/FileStore.h"
-#include "filestore_backend.h"
+#include "dumb_backend.h"
 
 namespace po = boost::program_options;
 using namespace std;
@@ -54,12 +54,16 @@ int main(int argc, char **argv)
      "set file for dumping op details, omit for stderr")
     ("filestore-path", po::value<string>(),
      "path to filestore directory, mandatory")
-    ("journal-path", po::value<string>(),
-     "path to journal, mandatory")
     ("offset-align", po::value<unsigned>()->default_value(4096),
      "align offset by")
-    ("write-infos", po::value<bool>()->default_value(false),
-      "write info objects with main writes")
+    ("fsync", po::value<bool>()->default_value(false),
+     "fsync after each write")
+    ("sync-file-range", po::value<bool>()->default_value(false),
+     "sync-file-range after each write")
+    ("fadvise", po::value<bool>()->default_value(false),
+     "fadvise after each write")
+    ("sync-interval", po::value<unsigned>()->default_value(30),
+     "frequency to sync")
     ;
 
   po::variables_map vm;
@@ -87,8 +91,8 @@ int main(int argc, char **argv)
   common_init_finish(g_ceph_context);
   g_ceph_context->_conf->apply_changes(NULL);
 
-  if (!vm.count("filestore-path") || !vm.count("journal-path")) {
-    cout << "Must provide filestore-path and journal-path" << std::endl
+  if (!vm.count("filestore-path")) {
+    cout << "Must provide filestore-path" << std::endl
 	 << desc << std::endl;
     return 1;
   }
@@ -106,11 +110,6 @@ int main(int argc, char **argv)
   ops.insert(make_pair(vm["write-ratio"].as<double>(), Bencher::WRITE));
   ops.insert(make_pair(1-vm["write-ratio"].as<double>(), Bencher::READ));
 
-  FileStore fs(vm["filestore-path"].as<string>(),
-	       vm["journal-path"].as<string>());
-  fs.mkfs();
-  fs.mount();
-
   cout << "Creating objects.." << std::endl;
   bufferlist bl;
   for (uint64_t i = 0; i < vm["object-size"].as<unsigned>(); ++i) {
@@ -125,18 +124,32 @@ int main(int argc, char **argv)
     obj << "obj_" << num;
     if (num == col_num) {
       std::cout << "collection " << coll.str() << std::endl;
-      ObjectStore::Transaction t;
-      t.create_collection(coll_t(coll.str()));
-      fs.apply_transaction(t);
+      string coll_str(
+	vm["filestore-path"].as<string>() + string("/") + coll.str());
+      int r = ::mkdir(
+	coll_str.c_str(),
+	0777);
+      if (r < 0) {
+	std::cerr << "Error " << errno << " creating collection" << std::endl;
+	return 1;
+      }
     }
     objects.insert(coll.str() + "/" + obj.str());
   }
-  {
-    std::cout << "blah" << std::endl;
-    ObjectStore::Transaction t;
-    t.create_collection(coll_t(string("meta")));
-    fs.apply_transaction(t);
+  string meta_str(vm["filestore-path"].as<string>() + string("/meta"));
+  int r = ::mkdir(
+    meta_str.c_str(),
+    0777);
+  if (r < 0) {
+    std::cerr << "Error " << errno << " creating collection" << std::endl;
+    return 1;
   }
+  r = ::open(meta_str.c_str(), 0);
+  if (r < 0) {
+    std::cerr << "Error " << errno << " opening meta" << std::endl;
+    return 1;
+  }
+  int sync_fd = r;
 
   ostream *detailed_ops = 0;
   ofstream myfile;
@@ -159,7 +172,15 @@ int main(int argc, char **argv)
     new Uniform(vm["io-size"].as<unsigned>()),
     new WeightedDist<Bencher::OpType>(rng, ops),
     new DetailedStatCollector(1, new JSONFormatter, detailed_ops, &cout),
-    new FileStoreBackend(&fs, vm["write-infos"].as<bool>()),
+    new DumbBackend(
+      vm["filestore-path"].as<string>(),
+      vm["fsync"].as<bool>(),
+      vm["sync-file-range"].as<bool>(),
+      vm["fadvise"].as<bool>(),
+      vm["sync-interval"].as<unsigned>(),
+      sync_fd,
+      10,
+      g_ceph_context),
     vm["num-concurrent-ops"].as<unsigned>(),
     vm["duration"].as<unsigned>(),
     vm["max-ops"].as<unsigned>());
@@ -169,7 +190,6 @@ int main(int argc, char **argv)
 
   bencher.run_bench();
 
-  fs.umount();
   if (vm["op-dump-file"].as<string>().size()) {
     myfile.close();
   }

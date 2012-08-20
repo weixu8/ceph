@@ -77,6 +77,12 @@ void Bencher::start_op() {
   ++open_ops;
 }
 
+void Bencher::drain_ops() {
+  Mutex::Locker l(lock);
+  while (open_ops)
+    open_ops_cond.Wait(lock);
+}
+
 void Bencher::complete_op() {
   Mutex::Locker l(lock);
   assert(open_ops > 0);
@@ -186,4 +192,5 @@ void Bencher::run_bench()
       }
     }
   }
+  drain_ops();
 }

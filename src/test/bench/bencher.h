@@ -38,6 +38,7 @@ private:
   Cond open_ops_cond;
   uint64_t open_ops;
   void start_op();
+  void drain_ops();
   void complete_op();
 public:
   Bencher(
