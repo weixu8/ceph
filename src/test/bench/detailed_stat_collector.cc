@@ -37,7 +37,7 @@ DetailedStatCollector::Aggregator::Aggregator()
 void DetailedStatCollector::Aggregator::add(const Op &op)
 {
   if (!started) {
-    last = first = cur_time();
+    last = first = op.start;
     started = true;
   }
   ++recent_ops;
