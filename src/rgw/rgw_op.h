@@ -102,6 +102,7 @@ public:
   }
   int verify_permission();
   void execute();
+  int handle_user_manifest(const char *prefix);
 
   virtual int get_params() = 0;
   virtual int send_response(bufferlist& bl) = 0;
@@ -281,6 +282,7 @@ protected:
   string etag;
   bool chunked_upload;
   RGWAccessControlPolicy policy;
+  const char *obj_manifest;
 
 public:
   RGWPutObj() {}
@@ -293,6 +295,7 @@ public:
     supplied_etag = NULL;
     etag = "";
     chunked_upload = false;
+    obj_manifest = NULL;
     policy.set_ctx(s->cct);
   }
 
