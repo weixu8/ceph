@@ -29,6 +29,7 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
     entity_name = auth_ticket_info.ticket.name;
     global_id = auth_ticket_info.ticket.global_id;
     session_key = auth_ticket_info.session_key;
+    ldout(cct, 1) << "CephxAuthorizeHandler:: session_key is =" << session_key << dendl;
     if (auid) *auid = auth_ticket_info.ticket.auid;
   }
 

@@ -2790,11 +2790,10 @@ bool OSD::ms_get_authorizer(int dest_type, AuthAuthorizer **authorizer, bool for
   return *authorizer != NULL;
 }
 
-// Added session key param to verify_authorizer call.  Not yet using the session key here.  PLR
 
 bool OSD::ms_verify_authorizer(Connection *con, int peer_type,
 			       int protocol, bufferlist& authorizer_data, bufferlist& authorizer_reply,
-			       bool& isvalid)
+			       bool& isvalid, CryptoKey& session_key)
 {
   AuthAuthorizeHandler *authorize_handler = authorize_handler_registry->get_handler(protocol);
   if (!authorize_handler) {
@@ -2806,22 +2805,18 @@ bool OSD::ms_verify_authorizer(Connection *con, int peer_type,
   AuthCapsInfo caps_info;
   EntityName name;
   uint64_t global_id;
-  CryptoKey  session_key;
   uint64_t auid = CEPH_AUTH_UID_DEFAULT;
 
   isvalid = authorize_handler->verify_authorizer(g_ceph_context, monc->rotating_secrets,
 						 authorizer_data, authorizer_reply, name, global_id, caps_info, session_key, &auid);
 
-  dout(10) << "OSD::ms_verify_authorizer name=" << name << " auid=" << auid << dendl;
+  dout(10) << "OSD::ms_verify_authorizer name=" << name << " auid=" << auid << " session key = " << session_key << dendl;
 
   if (isvalid) {
     Session *s = (Session *)con->get_priv();
     if (!s) {
       s = new Session;
       con->set_priv(s->get());
-      // Attach the protocol and the session key to the connection for later authentication. PLR
-      con->protocol = protocol;
-      con->session_key = session_key;
       s->con = con;
       dout(10) << " new session " << s << " con=" << s->con << " addr=" << s->con->get_peer_addr() << dendl;
     }

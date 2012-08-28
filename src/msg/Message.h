@@ -28,9 +28,6 @@
 #include "common/debug.h"
 #include "common/config.h"
 
-#include "auth/Crypto.h"
-#include "auth/AuthAuthorizeHandler.h"
-
 // monitor internal
 #define MSG_MON_ELECTION           65
 #define MSG_MON_PAXOS              66
@@ -158,14 +155,9 @@ struct Connection : public RefCountedObject {
   int rx_buffers_version;
   map<tid_t,pair<bufferlist,int> > rx_buffers;
 
-// protocol keeps track of what authentication protocol we're using here.  PLR
-  int protocol;
-// session_key used to authenticate ongoing connection messages. PLR
-  CryptoKey session_key;
-
 public:
   Connection() : lock("Connection::lock"), priv(NULL), peer_type(-1), features(0), pipe(NULL),
-		 rx_buffers_version(0), session_key() {}
+		 rx_buffers_version(0) {}
   ~Connection() {
     //generic_dout(0) << "~Connection " << this << dendl;
     if (priv) {

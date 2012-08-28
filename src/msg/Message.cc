@@ -14,6 +14,7 @@ using namespace std;
 #include "global/global_context.h"
 
 #include "Message.h"
+#include "Pipe.h"
 #include "messages/MPGStats.h"
 
 #include "messages/MGenericMessage.h"
@@ -185,54 +186,27 @@ void Message::encode(uint64_t features, bool datacrc)
     // message sequence number, since the header CRC is not checked.  That CRC is calculated,
     // so probably we could use it for the signature, but need to check that.  PLR
 
-  if (connection == NULL) {
-     generic_dout(0) << "No connection pointer for message signature creation" << dendl;
-  } else {
-
-    // Check if messages for this connection are being signed. Needs to be generalized once
-    // we have things working. PLR
-
-  if (connection->protocol == CEPH_AUTH_CEPHX ) {
-      bufferlist bl_plaintext,bl_encrypted;
-      ceph_msg_footer en_footer;
-      std::string error;
-      en_footer = get_footer();
-      // Put msg sequence number in the signature.  Not necessary if we add header crc to the
-      // signature.  PLR
-      ::encode(get_seq(),bl_plaintext);
-      ::encode(en_footer.front_crc,bl_plaintext);
-      ::encode(en_footer.middle_crc,bl_plaintext);
-      ::encode(en_footer.data_crc,bl_plaintext);
-
-      generic_dout (20) <<  header.seq << ": Trying to create a signature" << dendl;
-      generic_dout (20) <<  header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << dendl;
-
-      encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
-      if (!error.empty()) {
-        generic_dout(0) << "error encrypting message signature: " << error << dendl;
-        generic_dout(0) << "no signature put on message" << dendl;
+    if (connection == NULL) {
+       generic_dout(0) << "No connection pointer for message signature creation" << dendl;
+    } else {
+       Pipe *p = (Pipe *)connection->get_pipe();
+       if (p) {
+  
+          // Call sign_message().  If protocol in use signs them, that will take care of it. PLR
+  
+	  if (p->session_security == NULL) {
+	    generic_dout(20) << "Message:encode:  session security NULL for this pipe" << dendl;
+	  } else {
+            if (p->session_security->sign_message(this)) {
+	      generic_dout(20) << "Failed to put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
+            } else {
+	      generic_dout(20) << "Put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
+	    }
+        }
       } else {
-        bufferlist::iterator ci = bl_encrypted.begin();
-        uint32_t magic;
-        // Skip the magic number up front. PLR
-        try {
-	  ::decode(magic, ci);
-        } catch (buffer::error& e) {
-	  generic_dout(0) << "failed to decode magic number on msg " << dendl;
-        }
-        try {
-          ::decode(footer.sig,ci);
-        } catch (buffer::error& e) {
-	  generic_dout(0) << "failed to decode signature on msg " << dendl;
-        }
-	// Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
-	// to debug problems where sender and receiver disagree on need to sign msg.  PLR
-        footer.flags = (unsigned)footer.flags | CEPH_MSG_FOOTER_SIGNED;
-	generic_dout(20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
+         generic_dout(0) << "No pipe: encode can't sign message " << connection << " -- " << p << dendl;
       }
     }
-  }
-
 
 #ifdef ENCODE_DUMP
     bufferlist bl;

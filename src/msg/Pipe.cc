@@ -27,6 +27,7 @@
 
 #include "auth/Crypto.h"
 #include "auth/cephx/CephxProtocol.h"
+#include "auth/AuthSessionHandler.h"
 
 #define dout_subsys ceph_subsys_ms
 // Constant to limit starting sequence number to 2^31.  Nothing special about it, just a big number.  PLR
@@ -246,6 +247,7 @@ int Pipe::accept()
   bool authorizer_valid;
   uint64_t feat_missing;
   bool replaced = false;
+  CryptoKey session_key;
 
   // this should roughly mirror pseudocode at
   //  http://ceph.newdream.net/wiki/Messaging_protocol
@@ -306,13 +308,25 @@ int Pipe::accept()
     }
     
     msgr->lock.Unlock();
+
     if (msgr->verify_authorizer(connection_state, peer_type,
-				connect.authorizer_protocol, authorizer, authorizer_reply, authorizer_valid) &&
+				connect.authorizer_protocol, authorizer, authorizer_reply, authorizer_valid, session_key) &&
 	!authorizer_valid) {
       ldout(msgr->cct,0) << "accept bad authorizer" << dendl;
       reply.tag = CEPH_MSGR_TAG_BADAUTHORIZER;
       goto reply;
     }
+
+    // We've verified the authorizer for this pipe, so set up the session security structure.  PLR
+
+    if (connect.authorizer_protocol == CEPH_AUTH_UNKNOWN) {
+      ldout(msgr->cct,0)  << "accept: CEPH_AUTH_UNNOWN; setting session_security to NULL " << dendl;
+      session_security = NULL;
+    }
+    else {
+      session_security = get_auth_session_handler(msgr->cct, connect.authorizer_protocol, session_key);
+    }
+
     msgr->lock.Lock();
     if (msgr->dispatch_queue.stop)
       goto shutting_down;
@@ -880,15 +894,23 @@ int Pipe::connect()
       ldout(msgr->cct,10) << "connect success " << connect_seq << ", lossy = " << policy.lossy
 	       << ", features " << connection_state->get_features() << dendl;
 
-// Grab the session key out of the authorizer and put it in the connection data structure PLR
+      // If we have an authorizer, get a new AuthSessionHandler to deal with ongoing security of the
+      // connection.  PLR
 
-      if (authorizer) {
-      	connection_state->session_key = authorizer->session_key;
-      	connection_state->protocol = authorizer->protocol;
+      if (authorizer != NULL) {
+        if (connect.authorizer_protocol == CEPH_AUTH_UNKNOWN) {
+          ldout(msgr->cct,0)  << "connect: CEPH_AUTH_UNNOWN; setting session_security to NULL " << dendl;
+          session_security = NULL;
+        }
+        else {
+	  session_security = get_auth_session_handler(msgr->cct, authorizer->protocol, authorizer->session_key);
+        }
 
-    } else {
-      ldout(msgr->cct,10) << "authorizer pointer is NULL " << dendl;
-    }
+      }  else {
+        // We have no authorizer, so we shouldn't be applying security to messages in this pipe.  PLR
+	session_security = NULL;
+      }
+
 
       msgr->dispatch_queue.queue_connect(connection_state);
       
@@ -1391,8 +1413,6 @@ int Pipe::read_message(Message **pm)
   ceph_msg_header header; 
   ceph_msg_footer footer;
   __u32 header_crc;
-  bufferlist bl_plaintext, bl_ciphertext;
-  std::string sig_error;
   
   if (connection_state->has_feature(CEPH_FEATURE_NOSRCADDR)) {
     if (tcp_read(msgr->cct,  sd, (char*)&header, sizeof(header), msgr->timeout ) < 0)
@@ -1553,72 +1573,18 @@ int Pipe::read_message(Message **pm)
 
   //
   //  decode_message() could not check the digital signature, since it does not have
-  //  access to the session key for this connection, which is in the connection data
-  //  structure attached to the pipe.  So we check the signature at this point, instead,
-  //  since now we have the connection pointer.  Put the checksums into a buffer, ensure we 
-  //  have a connection pointer, make sure this is a message we should have signed, and, if 
-  //  that all works out, check the signature.  PLR
+  //  access to the session key for this pipe.  So we check the signature at this point, instead,
+  //  since now we have the pipe.  A zero return indicates success. PLR
   //
 
-  // Code doesn't currently check header crc, so we shouldn't sign it.  PLR
-  // Put sequence number in signature check.  Remove this if header crc is added to sig.   PLR
-  ::encode(message->get_seq(),bl_plaintext);
-  ::encode((__le32)footer.front_crc,bl_plaintext);
-  ::encode((__le32)footer.middle_crc,bl_plaintext);
-  ::encode((__le32)footer.data_crc,bl_plaintext);
-
-  if (connection_state == NULL) {
-    ldout(msgr->cct,0) << "No connection pointer for message signature check" << dendl;
+  if (session_security == NULL || session_security->get_protocol() == CEPH_AUTH_UNKNOWN) {
+    ldout(msgr->cct, 10) << "no session security set" << dendl;
   } else {
-
-    // This is a connection's message, so check if messages for this connection is being signed. 
-    // Check if the protocol is the CEPHX protocol.  This is kind of half-assed and
-    // should be generalized to handle other crypto authentication protocols.  PLR
-
-    if (connection_state-> protocol == CEPH_AUTH_CEPHX) {
-      // Encrypt the buffer containing the checksums. PLR
-      encode_encrypt(bl_plaintext,connection_state->session_key,bl_ciphertext, sig_error);
-      // If the encryption was error-free, grab the signature from the message and compare it. PLR
-      if (!sig_error.empty()) {
-        ldout(msgr->cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
-        ret = -EINVAL;
-        goto out_dethrottle;
-      } else {
-        bufferlist::iterator ci = bl_ciphertext.begin();
-        uint32_t magic; 
-        uint64_t sig_check = 0;
-        // Skip the magic number at the front. PLR
-        try {
-          ::decode(magic,ci);
-        } catch (buffer::error& e) {
-	  dout(0) << "failed to decode magic number on msg " << dendl;
-        }
-        try {
-          ::decode(sig_check,ci);
-        } catch (buffer::error& e) {
-	  dout(0) << "failed to decode magic number on msg " << dendl;
-        }
-        if (sig_check != footer.sig ) {
-	  // Should have been signed, but signature check failed.  PLR
-	  if (!(footer.flags & CEPH_MSG_FOOTER_SIGNED)) {
-            ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Sender did not set CEPH_MSG_FOOTER_SIGNED." << dendl;
-	  }
-          ldout(msgr->cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
-          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
-          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig " << footer.sig << dendl;
-          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
-          ldout(msgr->cct,0) << "SIGN: MSG " << header.seq << "    sig_check:" << sig_check << dendl;
-	
-	  // For the moment, printing an error message to the log and returning failure is sufficient.
-          // In the long term, we should probably have code parsing the log looking for this kind
-          // of security failure, particularly when there are large numbers of them, since the latter
-          // is a potential sign of an attack.  PLR
-
-          ret = -EINVAL;
-          goto out_dethrottle;
-        } 
-      }
-    }
+    if (session_security->check_message_signature(message)){
+      ldout(msgr->cct, 0) << "signature check failed" << dendl;
+      ret = -EINVAL;
+      goto out_dethrottle;
+    } 
   }
 
   message->set_throttler(policy.throttler);
