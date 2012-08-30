@@ -181,33 +181,6 @@ void Message::encode(uint64_t features, bool datacrc)
   if (datacrc) {
     calc_data_crc();
 
-    // Place digital signature in the message.  Only put it in if we're calculating full CRC 
-    // and it's a signed connection.  Currently, the signature is on the footer crcs and the
-    // message sequence number, since the header CRC is not checked.  That CRC is calculated,
-    // so probably we could use it for the signature, but need to check that.  PLR
-
-    if (connection == NULL) {
-       generic_dout(0) << "No connection pointer for message signature creation" << dendl;
-    } else {
-       Pipe *p = (Pipe *)connection->get_pipe();
-       if (p) {
-  
-          // Call sign_message().  If protocol in use signs them, that will take care of it. PLR
-  
-	  if (p->session_security == NULL) {
-	    generic_dout(20) << "Message:encode:  session security NULL for this pipe" << dendl;
-	  } else {
-            if (p->session_security->sign_message(this)) {
-	      generic_dout(20) << "Failed to put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
-            } else {
-	      generic_dout(20) << "Put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
-	    }
-        }
-      } else {
-         generic_dout(0) << "No pipe: encode can't sign message " << connection << " -- " << p << dendl;
-      }
-    }
-
 #ifdef ENCODE_DUMP
     bufferlist bl;
     ::encode(get_header(), bl);

@@ -1572,9 +1572,7 @@ int Pipe::read_message(Message **pm)
   }
 
   //
-  //  decode_message() could not check the digital signature, since it does not have
-  //  access to the session key for this pipe.  So we check the signature at this point, instead,
-  //  since now we have the pipe.  A zero return indicates success. PLR
+  //  Check the signature if one should be present.  A zero return indicates success. PLR
   //
 
   if (session_security == NULL || session_security->get_protocol() == CEPH_AUTH_UNKNOWN) {
@@ -1720,8 +1718,20 @@ int Pipe::write_message(Message *m)
   header.data_len = m->get_data().length();
   footer.flags = CEPH_MSG_FOOTER_COMPLETE;
   m->calc_header_crc();
-  // The crcs in the footer were computed in writer(), so now we have all the crcs for the
-  // message.  Calculate and store the signature.
+
+  // Now that we have all the crcs calculated, handle the digital signature for the message, if the 
+  // pipe has session security set up.  Some session security options do not actually calculate and 
+  // check the signature, but they should handle the calls to sign_message and check_signature.  PLR
+
+  if (session_security == NULL) {
+    generic_dout(20) << "Pipe: write_message:  session security NULL for this pipe" << dendl;
+  } else {
+    if (session_security->sign_message(m)) {
+      generic_dout(20) << "Failed to put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
+    } else {
+      generic_dout(20) << "Put signature in client message (seq # " << header.seq << "): sig = " << footer.sig << dendl;
+    }
+  }
 
   bufferlist blist = m->get_payload();
   blist.append(m->get_middle());

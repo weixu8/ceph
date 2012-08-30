@@ -12,9 +12,14 @@
  * 
  */
 
-#include "common/debug.h"
 #include "CephxSessionHandler.h"
 #include "CephxProtocol.h"
+
+#include <errno.h>
+#include <sstream>
+
+#include "common/config.h"
+#include "include/assert.h"
 
 #define dout_subsys ceph_subsys_auth
 
@@ -25,22 +30,25 @@ int CephxSessionHandler::sign_message(Message *m)
   ceph_msg_header header = m->get_header();
   std::string error;
 
+  // If runtime signing option is off, just return success without signing.
+
+  if (!(cct->_conf->cephx_sign_messages) ) {
+    return(0);
+  }
+
   en_footer = m->get_footer();
 
-  // Put msg sequence number in the signature.  Not necessary if we add the header crc to the
-  // signature.  PLR
-
-  ::encode(m->get_seq(), bl_plaintext);
+  ::encode(header.crc, bl_plaintext);
   ::encode(en_footer.front_crc, bl_plaintext);
   ::encode(en_footer.middle_crc, bl_plaintext);
   ::encode(en_footer.data_crc, bl_plaintext);
 
-  dout (10) <<  "sign_message: seq # " << header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << "; key = " << key << dendl;
+  ldout(cct, 10) <<  "sign_message: seq # " << header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << "; key = " << key << dendl;
 
   encode_encrypt(bl_plaintext, key, bl_encrypted,error);
   if (!error.empty()) {
-    dout(0) << "error encrypting message signature: " << error << dendl;
-    dout(0) << "no signature put on message" << dendl;
+    ldout(cct, 0) << "error encrypting message signature: " << error << dendl;
+    ldout(cct, 0) << "no signature put on message" << dendl;
     return SESSION_SIGNATURE_FAILURE;
   } else {
     bufferlist::iterator ci = bl_encrypted.begin();
@@ -49,12 +57,12 @@ int CephxSessionHandler::sign_message(Message *m)
     try {
       ::decode(magic, ci);
     } catch (buffer::error& e) {
-      dout(0) << "failed to decode magic number on msg " << dendl;
+      ldout(cct, 0) << "failed to decode magic number on msg " << dendl;
     }
     try {
       ::decode(en_footer.sig, ci);
     } catch (buffer::error& e) {
-      dout(0) << "failed to decode signature on msg " << dendl;
+      ldout(cct, 0) << "failed to decode signature on msg " << dendl;
     }
 
     // Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
@@ -63,7 +71,7 @@ int CephxSessionHandler::sign_message(Message *m)
     en_footer.flags = (unsigned)en_footer.flags | CEPH_MSG_FOOTER_SIGNED;
     m->set_footer(en_footer);
     messages_signed++;
-    dout(20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << en_footer.sig << dendl;
+    ldout(cct, 20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << en_footer.sig << dendl;
   }
   return 0;
 }
@@ -75,16 +83,19 @@ int CephxSessionHandler::check_message_signature(Message *m)
   ceph_msg_footer footer;
   ceph_msg_header header;
 
+  // If runtime signing option is off, just return success without checking signature.
+
+  if (!(cct->_conf->cephx_sign_messages) ) {
+    return(0);
+  }
+
   signatures_checked++;
   header = m->get_header();
   footer = m->get_footer();
 
-  dout(10) << "check_message_signature: seq # = " << m->get_seq() << " front_crc_ = " << footer.front_crc << " middle_crc = " << footer.middle_crc << " data_crc = " << footer.data_crc << "; key = " << key << dendl;
+  ldout(cct, 10) << "check_message_signature: seq # = " << m->get_seq() << " front_crc_ = " << footer.front_crc << " middle_crc = " << footer.middle_crc << " data_crc = " << footer.data_crc << "; key = " << key << dendl;
 
-  // Put sequence number in signature check.  Remove this if header crc is added to sig.   PLR
-
-  ::encode(m->get_seq(), bl_plaintext);
-
+  ::encode((__le32)header.crc, bl_plaintext);
   ::encode((__le32)footer.front_crc, bl_plaintext);
   ::encode((__le32)footer.middle_crc, bl_plaintext);
   ::encode((__le32)footer.data_crc, bl_plaintext);
@@ -96,7 +107,7 @@ int CephxSessionHandler::check_message_signature(Message *m)
   // If the encryption was error-free, grab the signature from the message and compare it. PLR
 
   if (!sig_error.empty()) {
-    ldout(cct,0) << "error in encryption for checking message signature: " << sig_error << dendl;
+    ldout(cct, 0) << "error in encryption for checking message signature: " << sig_error << dendl;
     return (SESSION_SIGNATURE_FAILURE);
   } else {
       bufferlist::iterator ci = bl_ciphertext.begin();
@@ -106,13 +117,13 @@ int CephxSessionHandler::check_message_signature(Message *m)
       try {
         ::decode(magic, ci);
       } catch (buffer::error& e) {
-        dout(0) << "failed to decode magic number on msg " << dendl;
+        ldout(cct, 0) << "failed to decode magic number on msg " << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
       try {
         ::decode(sig_check, ci);
       } catch (buffer::error& e) {
-        dout(0) << "failed to decode sig check on msg " << dendl;
+        ldout(cct, 0) << "failed to decode sig check on msg " << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
       if (sig_check != footer.sig ) {
