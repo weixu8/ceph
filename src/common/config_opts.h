@@ -273,6 +273,9 @@ OPTION(osd_refuse_backfill_full_ratio, OPT_FLOAT, 0.85)
 // Seconds to wait before retrying refused backfills
 OPTION(osd_backfill_retry_interval, OPT_DOUBLE, 10.0)
 
+// if true always use classic scrub
+OPTION(osd_force_classic_scrub, OPT_BOOL, false)
+
 OPTION(osd_uuid, OPT_UUID, uuid_d())
 OPTION(osd_data, OPT_STR, "/var/lib/ceph/osd/$cluster-$id")
 OPTION(osd_journal, OPT_STR, "/var/lib/ceph/osd/$cluster-$id/journal")

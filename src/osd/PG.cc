@@ -3264,9 +3264,8 @@ void PG::scrub()
       }
     }
 
-    struct stat buf;
-    if (stat("/tmp/classic", &buf) == 0) {
-        scrubber.is_chunky = false;
+    if (g_conf->osd_force_classic_scrub) {
+      scrubber.is_chunky = false;
     }
 
     if (scrubber.is_chunky) {
