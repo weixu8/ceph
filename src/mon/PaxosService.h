@@ -332,6 +332,12 @@ public:
    */
   virtual void get_health(list<pair<health_status_t,string> >& summary,
 			  list<pair<health_status_t,string> > *detail) const { }
+  /**
+   * Get this service's help/usage regarding commands and options.
+   *
+   * @param rs The string to be returned to the client.
+   */
+  virtual void get_help(string &rs) { }
 
   /**
    * @}

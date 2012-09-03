@@ -296,6 +296,12 @@ public:
    * @param detailbl optional bufferlist* to fill with a detailed report
    */
   void get_health(string& status, bufferlist *detailbl, Formatter *f);
+  /**
+   * Generate help/usage
+   *
+   * @param rs String to be returned to the client.
+   */
+  void get_help(string &rs);
 
   void reply_command(MMonCommand *m, int rc, const string &rs, version_t version);
   void reply_command(MMonCommand *m, int rc, const string &rs, bufferlist& rdata, version_t version);

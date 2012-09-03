@@ -1184,6 +1184,17 @@ void Monitor::get_health(string& status, bufferlist *detailbl, Formatter *f)
     f->close_section();
 }
 
+void Monitor::get_help(string &rs)
+{
+  vector<PaxosService*>::iterator p;
+  for (p = paxos_service.begin(); p != paxos_service.end(); ++p) {
+    string service_rs;
+    p->get_help(service_rs);
+    rs.append("\n");
+    rs.append(service_rs);
+  }
+}
+
 void Monitor::handle_command(MMonCommand *m)
 {
   if (m->fsid != monmap->fsid) {
@@ -1210,6 +1221,10 @@ void Monitor::handle_command(MMonCommand *m)
   int r = -EINVAL;
   rs = "unrecognized command";
   if (!m->cmd.empty()) {
+    if (m->cmd[0] == "help") {
+      get_help(rs);
+      return;
+    }
     if (m->cmd[0] == "mds") {
       mdsmon()->dispatch(m);
       return;

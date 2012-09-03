@@ -1499,6 +1499,28 @@ void OSDMonitor::dump_info(Formatter *f)
   f->close_section();
 }
 
+void OSDMonitor::get_help(string &rs)
+{
+  stringstream ss;
+
+  ss << "osd <command [args...]>\n"
+     << "\n"
+     << " commands:\n"
+     << "  stat                                       print osdmap's summary\n"
+     << "  dump [[-f|--format={plain,json}] epoch]    dump osdmap\n"
+     << "  tree [epoch]                               print osdmap's tree\n"
+     << "  getmap [epoch]                             print osdmap's in binary format\n"
+     << "  getcrushmap [epoch]                        print crushmap in binary format\n"
+     << "  getmaxosds                                 obtain maximum number of osds\n"
+     << "  tell <who> <what>                          inject <what> into osd <who>\n"
+     << "  map <pool> <pg>                            print mapping of <pool>'s <pg>\n"
+     << "  scrub|repair <who>                         scrub/repair osd <who>\n"
+     << "  lspools [pool-id]                          list pools\n"
+     << "  blacklist ls                               list blacklisted entries\n"
+     << "";
+  rs.append(ss.str());
+}
+
 bool OSDMonitor::preprocess_command(MMonCommand *m)
 {
   int r = -1;
