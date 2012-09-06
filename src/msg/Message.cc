@@ -14,6 +14,7 @@ using namespace std;
 #include "global/global_context.h"
 
 #include "Message.h"
+#include "Pipe.h"
 #include "messages/MPGStats.h"
 
 #include "messages/MGenericMessage.h"
@@ -145,10 +146,6 @@ using namespace std;
 
 #include "common/config.h"
 
-// Below included to get encode_encrypt(); That probably should be in Crypto.h, instead PLR
-
-#include "auth/cephx/CephxProtocol.h"
-
 #define DEBUGLVL  10    // debug level of output
 
 #define dout_subsys ceph_subsys_ms
@@ -179,60 +176,6 @@ void Message::encode(uint64_t features, bool datacrc)
   calc_front_crc();
   if (datacrc) {
     calc_data_crc();
-
-    // Place digital signature in the message.  Only put it in if we're calculating full CRC 
-    // and it's a signed connection.  Currently, the signature is on the footer crcs and the
-    // message sequence number, since the header CRC is not checked.  That CRC is calculated,
-    // so probably we could use it for the signature, but need to check that.  PLR
-
-  if (connection == NULL) {
-     generic_dout(0) << "No connection pointer for message signature creation" << dendl;
-  } else {
-
-    // Check if messages for this connection are being signed. Needs to be generalized once
-    // we have things working. PLR
-
-  if (connection->protocol == CEPH_AUTH_CEPHX ) {
-      bufferlist bl_plaintext,bl_encrypted;
-      ceph_msg_footer en_footer;
-      std::string error;
-      en_footer = get_footer();
-      // Put msg sequence number in the signature.  Not necessary if we add header crc to the
-      // signature.  PLR
-      ::encode(get_seq(),bl_plaintext);
-      ::encode(en_footer.front_crc,bl_plaintext);
-      ::encode(en_footer.middle_crc,bl_plaintext);
-      ::encode(en_footer.data_crc,bl_plaintext);
-
-      generic_dout (20) <<  header.seq << ": Trying to create a signature" << dendl;
-      generic_dout (20) <<  header.seq << " CRCs are: header " << header.crc << " front " << en_footer.front_crc << " middle " << en_footer.middle_crc << " data " << en_footer.data_crc  << dendl;
-
-      encode_encrypt(bl_plaintext,connection->session_key,bl_encrypted,error);
-      if (!error.empty()) {
-        generic_dout(0) << "error encrypting message signature: " << error << dendl;
-        generic_dout(0) << "no signature put on message" << dendl;
-      } else {
-        bufferlist::iterator ci = bl_encrypted.begin();
-        uint32_t magic;
-        // Skip the magic number up front. PLR
-        try {
-	  ::decode(magic, ci);
-        } catch (buffer::error& e) {
-	  generic_dout(0) << "failed to decode magic number on msg " << dendl;
-        }
-        try {
-          ::decode(footer.sig,ci);
-        } catch (buffer::error& e) {
-	  generic_dout(0) << "failed to decode signature on msg " << dendl;
-        }
-	// Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
-	// to debug problems where sender and receiver disagree on need to sign msg.  PLR
-        footer.flags = (unsigned)footer.flags | CEPH_MSG_FOOTER_SIGNED;
-	generic_dout(20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
-      }
-    }
-  }
-
 
 #ifdef ENCODE_DUMP
     bufferlist bl;

@@ -22,7 +22,6 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
   CephXServiceTicketInfo auth_ticket_info;
 
   bool isvalid = cephx_verify_authorizer(cct, keys, iter, auth_ticket_info, authorizer_reply);
-  ldout(cct, 1) << "CephxAuthorizeHandler::verify_authorizer isvalid=" << isvalid << dendl;
 
   if (isvalid) {
     caps_info = auth_ticket_info.ticket.caps;

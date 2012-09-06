@@ -36,6 +36,7 @@ using namespace __gnu_cxx;
 #include "tcp.h"
 #include "include/assert.h"
 #include "DispatchQueue.h"
+#include "auth/Crypto.h"
 
 #include "Pipe.h"
 
@@ -524,7 +525,7 @@ public:
    * This wraps ms_deliver_verify_authorizer; we use it for Pipe.
    */
   bool verify_authorizer(Connection *con, int peer_type, int protocol, bufferlist& auth, bufferlist& auth_reply,
-                         bool& isvalid);
+                         bool& isvalid, CryptoKey& session_key);
   /**
    * Increment the global sequence for this SimpleMessenger and return it.
    * This is for the connect protocol, although it doesn't hurt if somebody

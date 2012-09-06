@@ -17,6 +17,7 @@
 
 #include "msg_types.h"
 #include "Messenger.h"
+#include "auth/AuthSessionHandler.h"
 
 class SimpleMessenger;
 class IncomingQueue;
@@ -83,6 +84,10 @@ class DispatchQueue;
     Mutex pipe_lock;
     int state;
 
+    // session_security handles any signatures or encryptions required for this pipe's msgs. PLR
+
+    AuthSessionHandler *session_security;
+
   protected:
     friend class SimpleMessenger;
     Connection *connection_state;
@@ -103,6 +108,7 @@ class DispatchQueue;
     __u32 connect_seq, peer_global_seq;
     uint64_t out_seq;
     uint64_t in_seq, in_seq_acked;
+
     
     int accept();   // server handshake
     int connect();  // client handshake
@@ -222,6 +228,7 @@ class DispatchQueue;
       if (sd >= 0)
         ::shutdown(sd, SHUT_RDWR);
     }
+
   };
 
 
