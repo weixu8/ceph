@@ -146,10 +146,6 @@ using namespace std;
 
 #include "common/config.h"
 
-// Below included to get encode_encrypt(); That probably should be in Crypto.h, instead PLR
-
-#include "auth/cephx/CephxProtocol.h"
-
 #define DEBUGLVL  10    // debug level of output
 
 #define dout_subsys ceph_subsys_ms

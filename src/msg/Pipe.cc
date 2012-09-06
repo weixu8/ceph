@@ -1724,12 +1724,12 @@ int Pipe::write_message(Message *m)
   // check the signature, but they should handle the calls to sign_message and check_signature.  PLR
 
   if (session_security == NULL) {
-    generic_dout(20) << "Pipe: write_message:  session security NULL for this pipe" << dendl;
+    ldout(msgr->cct, 20) << "Pipe: write_message:  session security NULL for this pipe." << dendl;
   } else {
     if (session_security->sign_message(m)) {
-      generic_dout(20) << "Failed to put signature in client message(seq # " << header.seq << "): sig = " << footer.sig << dendl;
+      ldout(msgr->cct, 20) << "Failed to put signature in client message (seq # " << header.seq << "): sig = " << footer.sig << dendl;
     } else {
-      generic_dout(20) << "Put signature in client message (seq # " << header.seq << "): sig = " << footer.sig << dendl;
+      ldout(msgr->cct, 20) << "Put signature in client message (seq # " << header.seq << "): sig = " << footer.sig << dendl;
     }
   }
 

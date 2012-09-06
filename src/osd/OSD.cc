@@ -2810,8 +2810,6 @@ bool OSD::ms_verify_authorizer(Connection *con, int peer_type,
   isvalid = authorize_handler->verify_authorizer(g_ceph_context, monc->rotating_secrets,
 						 authorizer_data, authorizer_reply, name, global_id, caps_info, session_key, &auid);
 
-  dout(10) << "OSD::ms_verify_authorizer name=" << name << " auid=" << auid << " session key = " << session_key << dendl;
-
   if (isvalid) {
     Session *s = (Session *)con->get_priv();
     if (!s) {

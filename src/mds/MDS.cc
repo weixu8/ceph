@@ -2003,7 +2003,7 @@ void MDS::ms_handle_remote_reset(Connection *con)
 
 bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
 			       int protocol, bufferlist& authorizer_data, bufferlist& authorizer_reply,
-			       bool& is_valid,CryptoKey& session_key)
+			       bool& is_valid, CryptoKey& session_key)
 {
   Mutex::Locker l(mds_lock);
   if (want_state == CEPH_MDS_STATE_DNE)
@@ -2032,7 +2032,6 @@ bool MDS::ms_verify_authorizer(Connection *con, int peer_type,
       s = new Session;
       s->inst.addr = con->get_peer_addr();
       s->inst.name = n;
-      dout(10) << " new session " << s << " for " << s->inst << " session key = " << session_key << dendl;
       con->set_priv(s);
       s->connection = con;
       sessionmap.add_session(s);

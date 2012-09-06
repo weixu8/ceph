@@ -117,13 +117,13 @@ int CephxSessionHandler::check_message_signature(Message *m)
       try {
         ::decode(magic, ci);
       } catch (buffer::error& e) {
-        ldout(cct, 0) << "failed to decode magic number on msg " << dendl;
+        ldout(cct, 0) << "Failed to decode magic number on msg." << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
       try {
         ::decode(sig_check, ci);
       } catch (buffer::error& e) {
-        ldout(cct, 0) << "failed to decode sig check on msg " << dendl;
+        ldout(cct, 0) << "Failed to decode sig check on msg." << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
       if (sig_check != footer.sig ) {
@@ -132,21 +132,22 @@ int CephxSessionHandler::check_message_signature(Message *m)
           ldout(cct, 0) << "SIGN: MSG " << header.seq << " Sender did not set CEPH_MSG_FOOTER_SIGNED." << dendl;
         }
         ldout(cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "signature on message:" << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig " << footer.sig << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "locally calculated signature:" << dendl;
+        ldout(cct, 0) << "SIGN: MSG " << header.seq << "Signature on message:" << dendl;
+        ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig: " << footer.sig << dendl;
+        ldout(cct, 0) << "SIGN: MSG " << header.seq << "Locally calculated signature:" << dendl;
         ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig_check:" << sig_check << dendl;
 
         // For the moment, printing an error message to the log and returning failure is sufficient.
         // In the long term, we should probably have code parsing the log looking for this kind
         // of security failure, particularly when there are large numbers of them, since the latter
         // is a potential sign of an attack.  PLR
+
         signatures_failed++;
-        ldout(cct, 0) << "signature failed " << dendl;
+        ldout(cct, 0) << "Signature failed." << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
     // If we get here, the signature checked.  PLR
-    ldout(cct, 10) << "signature matched " << dendl;
+    ldout(cct, 10) << "Signature matched." << dendl;
     signatures_matched++;;
   }
   return (0);

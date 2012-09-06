@@ -2166,7 +2166,6 @@ bool Monitor::ms_verify_authorizer(Connection *con, int peer_type,
 					  auth_ticket_info, authorizer_reply);
 	if (ret >= 0) {
 	  session_key = auth_ticket_info.session_key;
-	  dout (10) << "Monitor: ms_verify_authorizer: session key is " << session_key << dendl;
 	  isvalid = true;
 	} else {
 	  dout(0) << "ms_verify_authorizer bad authorizer from mon " << con->get_peer_addr() << dendl;

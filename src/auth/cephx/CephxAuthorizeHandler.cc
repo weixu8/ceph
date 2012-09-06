@@ -22,14 +22,12 @@ bool CephxAuthorizeHandler::verify_authorizer(CephContext *cct, KeyStore *keys,
   CephXServiceTicketInfo auth_ticket_info;
 
   bool isvalid = cephx_verify_authorizer(cct, keys, iter, auth_ticket_info, authorizer_reply);
-  ldout(cct, 1) << "CephxAuthorizeHandler::verify_authorizer isvalid=" << isvalid << dendl;
 
   if (isvalid) {
     caps_info = auth_ticket_info.ticket.caps;
     entity_name = auth_ticket_info.ticket.name;
     global_id = auth_ticket_info.ticket.global_id;
     session_key = auth_ticket_info.session_key;
-    ldout(cct, 1) << "CephxAuthorizeHandler:: session_key is =" << session_key << dendl;
     if (auid) *auid = auth_ticket_info.ticket.auid;
   }
 
