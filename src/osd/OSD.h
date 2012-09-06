@@ -26,6 +26,7 @@
 #include "common/Timer.h"
 #include "common/WorkQueue.h"
 #include "common/LogClient.h"
+#include "common/AsyncReserver.h"
 
 #include "os/ObjectStore.h"
 #include "OSDCap.h"
@@ -255,6 +256,11 @@ public:
     return t;
   }
 
+  // -- backfill_reservation --
+  Finisher reserver_finisher;
+  AsyncReserver<pg_t> local_reserver;
+  AsyncReserver<pg_t> remote_reserver;
+
   // -- pg_temp --
   Mutex pg_temp_lock;
   map<pg_t, vector<int> > pg_temp_wanted;
@@ -316,6 +322,7 @@ public:
   void pg_stat_queue_dequeue(PG *pg);
 
   OSDService(OSD *osd);
+  ~OSDService();
 };
 class OSD : public Dispatcher {
   /** OSD **/
@@ -901,6 +908,7 @@ protected:
   void handle_pg_scan(OpRequestRef op);
 
   void handle_pg_backfill(OpRequestRef op);
+  void handle_pg_backfill_reserve(OpRequestRef op);
 
   void handle_pg_remove(OpRequestRef op);
   void _remove_pg(PG *pg);

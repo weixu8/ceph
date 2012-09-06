@@ -71,6 +71,7 @@
 #include "messages/MOSDPGScan.h"
 #include "messages/MOSDPGBackfill.h"
 #include "messages/MOSDPGMissing.h"
+#include "messages/MBackfillReserve.h"
 
 #include "messages/MOSDAlive.h"
 
@@ -163,12 +164,22 @@ OSDService::OSDService(OSD *osd) :
   watch(NULL),
   last_tid(0),
   tid_lock("OSDService::tid_lock"),
+  reserver_finisher(g_ceph_context),
+  local_reserver(&reserver_finisher, g_conf->osd_num_concurrent_backfills),
+  remote_reserver(&reserver_finisher, g_conf->osd_num_concurrent_backfills),
   pg_temp_lock("OSDService::pg_temp_lock"),
   map_cache_lock("OSDService::map_lock"),
   map_cache(g_conf->osd_map_cache_size),
   map_bl_cache(g_conf->osd_map_cache_size),
   map_bl_inc_cache(g_conf->osd_map_cache_size)
-{}
+{
+  reserver_finisher.start();
+}
+
+OSDService::~OSDService()
+{
+  reserver_finisher.stop();
+}
 
 void OSDService::need_heartbeat_peer_update()
 {
@@ -3139,6 +3150,10 @@ void OSD::dispatch_op(OpRequestRef op)
     handle_pg_backfill(op);
     break;
 
+  case MSG_OSD_BACKFILL_RESERVE:
+    handle_pg_backfill_reserve(op);
+    break;
+
     // client ops
   case CEPH_MSG_OSD_OP:
     handle_op(op);
@@ -4855,6 +4870,42 @@ void OSD::handle_pg_backfill(OpRequestRef op)
   pg->unlock();
 }
 
+void OSD::handle_pg_backfill_reserve(OpRequestRef op)
+{
+  MBackfillReserve *m = static_cast<MBackfillReserve*>(op->request);
+  assert(m->get_header().type == MSG_OSD_BACKFILL_RESERVE);
+
+  if (!require_osd_peer(op))
+    return;
+  if (!require_same_or_newer_map(op, m->query_epoch))
+    return;
+
+  PG *pg = 0;
+  if (!_have_pg(m->pgid))
+    return;
+
+  pg = _lookup_lock_pg(m->pgid);
+  assert(pg);
+
+  if (m->type == MBackfillReserve::REQUESTING) {
+    pg->queue_peering_event(
+      PG::CephPeeringEvtRef(
+	new PG::CephPeeringEvt(
+	  m->query_epoch,
+	  m->query_epoch,
+	  PG::RequestBackfill())));
+  } else if (m->type == MBackfillReserve::GRANTED) {
+    pg->queue_peering_event(
+      PG::CephPeeringEvtRef(
+	new PG::CephPeeringEvt(
+	  m->query_epoch,
+	  m->query_epoch,
+	  PG::RemoteBackfillReserved())));
+  } else {
+    assert(0);
+  }
+  pg->unlock();
+}
 
 /** PGQuery
  * from primary to replica | stray
