@@ -314,18 +314,13 @@ int Pipe::accept()
 	!authorizer_valid) {
       ldout(msgr->cct,0) << "accept bad authorizer" << dendl;
       reply.tag = CEPH_MSGR_TAG_BADAUTHORIZER;
+      session_security = NULL;
       goto reply;
     }
 
     // We've verified the authorizer for this pipe, so set up the session security structure.  PLR
 
-    if (connect.authorizer_protocol == CEPH_AUTH_UNKNOWN) {
-      ldout(msgr->cct,0)  << "accept: CEPH_AUTH_UNNOWN; setting session_security to NULL " << dendl;
-      session_security = NULL;
-    }
-    else {
-      session_security = get_auth_session_handler(msgr->cct, connect.authorizer_protocol, session_key);
-    }
+    session_security = get_auth_session_handler(msgr->cct, connect.authorizer_protocol, session_key);
 
     msgr->lock.Lock();
     if (msgr->dispatch_queue.stop)
@@ -898,14 +893,7 @@ int Pipe::connect()
       // connection.  PLR
 
       if (authorizer != NULL) {
-        if (connect.authorizer_protocol == CEPH_AUTH_UNKNOWN) {
-          ldout(msgr->cct,0)  << "connect: CEPH_AUTH_UNNOWN; setting session_security to NULL " << dendl;
-          session_security = NULL;
-        }
-        else {
-	  session_security = get_auth_session_handler(msgr->cct, authorizer->protocol, authorizer->session_key);
-        }
-
+        session_security = get_auth_session_handler(msgr->cct, authorizer->protocol, authorizer->session_key);
       }  else {
         // We have no authorizer, so we shouldn't be applying security to messages in this pipe.  PLR
 	session_security = NULL;
@@ -1575,11 +1563,11 @@ int Pipe::read_message(Message **pm)
   //  Check the signature if one should be present.  A zero return indicates success. PLR
   //
 
-  if (session_security == NULL || session_security->get_protocol() == CEPH_AUTH_UNKNOWN) {
-    ldout(msgr->cct, 10) << "no session security set" << dendl;
+  if (session_security == NULL ) {
+    ldout(msgr->cct, 10) << "No session security set" << dendl;
   } else {
     if (session_security->check_message_signature(message)){
-      ldout(msgr->cct, 0) << "signature check failed" << dendl;
+      ldout(msgr->cct, 0) << "Signature check failed" << dendl;
       ret = -EINVAL;
       goto out_dethrottle;
     } 
@@ -1821,11 +1809,25 @@ int Pipe::write_message(Message *m)
   }
   assert(left == 0);
 
-  // send footer
-  msgvec[msg.msg_iovlen].iov_base = (void*)&footer;
-  msgvec[msg.msg_iovlen].iov_len = sizeof(footer);
-  msglen += sizeof(footer);
-  msg.msg_iovlen++;
+  // send footer; if receiver doesn't support signatures, use the old footer format
+
+  ceph_msg_footer_old old_footer;
+  if (connection_state->has_feature(CEPH_FEATURE_MSG_AUTH)) {
+    msgvec[msg.msg_iovlen].iov_base = (void*)&footer;
+    msgvec[msg.msg_iovlen].iov_len = sizeof(footer);
+    msglen += sizeof(footer);
+    msg.msg_iovlen++;
+  } else {
+    old_footer.front_crc = footer.front_crc;   
+    old_footer.middle_crc = footer.middle_crc;   
+    old_footer.data_crc = footer.data_crc;   
+    old_footer.flags = footer.flags;   
+    msgvec[msg.msg_iovlen].iov_base = (char*)&old_footer;
+    msgvec[msg.msg_iovlen].iov_len = sizeof(old_footer);
+    msglen += sizeof(old_footer);
+    msg.msg_iovlen++;
+  }
+
 
   // send
   if (do_sendmsg(&msg, msglen))

@@ -50,29 +50,34 @@ int CephxSessionHandler::sign_message(Message *m)
     ldout(cct, 0) << "error encrypting message signature: " << error << dendl;
     ldout(cct, 0) << "no signature put on message" << dendl;
     return SESSION_SIGNATURE_FAILURE;
-  } else {
-    bufferlist::iterator ci = bl_encrypted.begin();
-    uint32_t magic;
-    // Skip the magic number up front. PLR
-    try {
-      ::decode(magic, ci);
-    } catch (buffer::error& e) {
-      ldout(cct, 0) << "failed to decode magic number on msg " << dendl;
-    }
-    try {
-      ::decode(en_footer.sig, ci);
-    } catch (buffer::error& e) {
-      ldout(cct, 0) << "failed to decode signature on msg " << dendl;
-    }
-
-    // Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
-    // to debug problems where sender and receiver disagree on need to sign msg.  PLR
-
-    en_footer.flags = (unsigned)en_footer.flags | CEPH_MSG_FOOTER_SIGNED;
-    m->set_footer(en_footer);
-    messages_signed++;
-    ldout(cct, 20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << en_footer.sig << dendl;
+  } 
+  bufferlist::iterator ci = bl_encrypted.begin();
+  uint32_t magic;
+  // Skip the magic number up front. PLR
+  try {
+    ::decode(magic, ci);
+  } catch (buffer::error& e) {
+    ldout(cct, 0) << "failed to decode magic number on msg " << dendl;
+    return SESSION_SIGNATURE_FAILURE;
   }
+  try {
+    ::decode(en_footer.sig, ci);
+  } catch (buffer::error& e) {
+    ldout(cct, 0) << "failed to decode signature on msg " << dendl;
+    return SESSION_SIGNATURE_FAILURE;
+  }
+
+  // There's potentially an issue with whether the encoding and decoding done here will work
+  // properly when a big endian and little endian machine are talking.  We think it's OK,
+  // but it should be tested to be sure.  PLR
+
+  // Receiver won't trust this flag to decide if msg should have been signed.  It's primarily
+  // to debug problems where sender and receiver disagree on need to sign msg.  PLR
+
+  en_footer.flags = (unsigned)en_footer.flags | CEPH_MSG_FOOTER_SIGNED;
+  m->set_footer(en_footer);
+  messages_signed++;
+  ldout(cct, 20) << "Putting signature in client message(seq # " << header.seq << "): sig = " << en_footer.sig << dendl;
   return 0;
 }
 
@@ -126,6 +131,11 @@ int CephxSessionHandler::check_message_signature(Message *m)
         ldout(cct, 0) << "Failed to decode sig check on msg." << dendl;
         return (SESSION_SIGNATURE_FAILURE);
       }
+
+      // There's potentially an issue with whether the encoding and decoding done here will work
+      // properly when a big endian and little endian machine are talking.  We think it's OK,
+      // but it should be tested to be sure.  PLR
+
       if (sig_check != footer.sig ) {
         // Should have been signed, but signature check failed.  PLR
         if (!(footer.flags & CEPH_MSG_FOOTER_SIGNED)) {

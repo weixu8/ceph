@@ -16,6 +16,7 @@
 #include "AuthSessionHandler.h"
 #include "cephx/CephxSessionHandler.h"
 #include "none/AuthNoneSessionHandler.h"
+#include "unknown/AuthUnknownSessionHandler.h"
 #include "AuthSupported.h"
 #include "common/config.h"
 
@@ -31,9 +32,12 @@ AuthSessionHandler *get_auth_session_handler(CephContext *cct, int protocol, Cry
     return new CephxSessionHandler(cct, key);
   case CEPH_AUTH_NONE:
     return new AuthNoneSessionHandler(cct, key);
+  case CEPH_AUTH_UNKNOWN:
+    return new AuthUnknownSessionHandler(cct, key);
   }
   return NULL;
 }
+
 
 void AuthSessionHandler::printAuthSessionHandlerStats() {
   ldout(cct,10) << "Auth Session Handler Stats " << this << dendl;

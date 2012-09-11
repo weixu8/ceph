@@ -12,8 +12,8 @@ key to sign the messages.
 
 This document describes changes to the code that allow such ongoing session authentication.
 The changes allow for future changes that permit other authentication protocols (and the 
-existing null NONE protocol) to handle signatures, but the only protocol that actually does
-signatures, at the time of the writing, is the Cephx protocol.
+existing null NONE and UNKNOWN protocols) to handle signatures, but the only protocol that 
+actually does signatures, at the time of the writing, is the Cephx protocol.
 
 Introduction
 -------------
@@ -83,9 +83,10 @@ call ``sign\_message()`` as soon as we've calculated that CRC.
 
 ``sign\_message()`` is a virtual function defined in ``auth/AuthSessionHandler.h``.  Thus,
 a specific version of it must be written for each authentication protocol supported.  Currently,
-only NONE and CEPHX are supported.  So there is a separate version of ``sign\_message()`` in
-``auth/none/AuthNoneSessionHandler.h`` and ``auth/cephx/CephxSessionHandler.cc``.  The NONE 
-version simple returns 0, indicating success.
+only UNKNOWN, NONE and CEPHX are supported.  So there is a separate version of ``sign\_message()`` in
+``auth/unknown/AuthUnknownSessionHandler.h``, ``auth/none/AuthNoneSessionHandler.h`` and 
+``auth/cephx/CephxSessionHandler.cc``.  The UNKNOWN and NONE versions simply return 0, indicating 
+success.
 
 The CEPHX version is more extensive.  It is found in ``auth/cephx/CephxSessionHandler.cc``.  
 The first thing done is to determine if the run time option to handle signatures (see above) is on.  
@@ -107,8 +108,9 @@ Checking Signatures
 
 The signature is checked by a routine called ``check\_message\_signature()``.  This is also a
 virtual function, defined in ``auth/AuthSessionHandler.h``.  So again there are specific versions
-for supported authentication protocols, such as NONE and CEPHX.  Again, the NONE version is
-stored in ``auth/none/AuthNoneSessionHandler.h``, and again it simply returns 0, indicating
+for supported authentication protocols, such as UNKNOWN, NONE and CEPHX.  Again, the UNKNOWN and
+NONE versions are stored in ``auth/unknown/AuthUnknownSessionHandler.h`` and 
+``auth/none/AuthNoneSessionHandler.h``, respectively, and again they simply return 0, indicating
 success.
 
 The CEPHX version of ``check\_message\_signature()`` performs a real signature check.  This routine 

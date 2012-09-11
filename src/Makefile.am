@@ -1010,6 +1010,7 @@ libcommon_files = \
 	auth/cephx/CephxProtocol.cc \
 	auth/cephx/CephxSessionHandler.cc \
 	auth/none/AuthNoneAuthorizeHandler.cc \
+	auth/unknown/AuthUnknownAuthorizeHandler.cc \
 	auth/Crypto.cc \
 	auth/KeyRing.cc \
 	auth/RotatingKeyRing.cc \
@@ -1211,6 +1212,11 @@ noinst_HEADERS = \
 	auth/none/AuthNoneServiceHandler.h\
 	auth/none/AuthNoneSessionHandler.h\
 	auth/none/AuthNoneProtocol.h\
+	auth/unknown/AuthUnknownAuthorizeHandler.h\
+	auth/unknown/AuthUnknownClientHandler.h\
+	auth/unknown/AuthUnknownServiceHandler.h\
+	auth/unknown/AuthUnknownSessionHandler.h\
+	auth/unknown/AuthUnknownProtocol.h\
 	auth/Auth.h\
 	auth/AuthSupported.h\
 	auth/AuthClientHandler.h\

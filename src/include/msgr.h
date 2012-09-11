@@ -170,7 +170,14 @@ struct ceph_msg_header {
 
 /*
  * follows data payload
+ * ceph_msg_footer_old does not support digital signatures on messages PLR
  */
+
+struct ceph_msg_footer_old {
+	__le32 front_crc, middle_crc, data_crc;
+	__u8 flags;
+} __attribute__ ((packed));
+
 struct ceph_msg_footer {
 	__le32 front_crc, middle_crc, data_crc;
 	// sig holds the 64 bits of the digital signature for the message PLR
