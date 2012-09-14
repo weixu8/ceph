@@ -162,6 +162,8 @@ OSDService::OSDService(OSD *osd) :
   watch_lock("OSD::watch_lock"),
   watch_timer(osd->client_messenger->cct, watch_lock),
   watch(NULL),
+  backfill_request_lock("OSD::backfill_request_lock"),
+  backfill_request_timer(g_ceph_context, backfill_request_lock, false),
   last_tid(0),
   tid_lock("OSDService::tid_lock"),
   reserver_finisher(g_ceph_context),
@@ -811,6 +813,7 @@ int OSD::init()
   timer.init();
   service.watch_timer.init();
   service.watch = new Watch();
+  service.backfill_request_timer.init();
 
   // mount.
   dout(2) << "mounting " << dev_path << " "
@@ -1042,6 +1045,10 @@ int OSD::shutdown()
   service.watch_lock.Lock();
   service.watch_timer.shutdown();
   service.watch_lock.Unlock();
+
+  service.backfill_request_lock.Lock();
+  service.backfill_request_timer.shutdown();
+  service.backfill_request_lock.Unlock();
 
   heartbeat_lock.Lock();
   heartbeat_stop = true;
@@ -4901,6 +4908,13 @@ void OSD::handle_pg_backfill_reserve(OpRequestRef op)
 	  m->query_epoch,
 	  m->query_epoch,
 	  PG::RemoteBackfillReserved())));
+  } else if (m->type == MBackfillReserve::REJECTED) {
+    pg->queue_peering_event(
+      PG::CephPeeringEvtRef(
+	new PG::CephPeeringEvt(
+	  m->query_epoch,
+	  m->query_epoch,
+	  PG::RemoteReservationRejected())));
   } else {
     assert(0);
   }

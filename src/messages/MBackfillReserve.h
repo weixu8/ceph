@@ -25,7 +25,8 @@ public:
   epoch_t query_epoch;
   enum {
     REQUESTING = 0,
-    GRANTED = 1
+    GRANTED = 1,
+    REJECTED = 2,
   };
   int type;
   MBackfillReserve(int type,
