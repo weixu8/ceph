@@ -42,6 +42,8 @@ public:
   virtual bool prefetch_data() { return false; }
   virtual int verify_permission() = 0;
   virtual void execute() = 0;
+  virtual void send_response() {}
+  virtual void complete() { send_response(); }
   virtual const char *name() = 0;
 };
 
@@ -86,7 +88,6 @@ public:
     unmod_time = 0;
     mod_ptr = NULL;
     unmod_ptr = NULL;
-    attrs.clear();
     partial_content = false;
     ret = 0;
  }
