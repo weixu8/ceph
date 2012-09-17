@@ -792,16 +792,18 @@ int RGWHandler_REST_S3::init_from_header(struct req_state *s)
   if (!s->bucket_name) {
     s->bucket_name_str = first;
     s->bucket_name = strdup(s->bucket_name_str.c_str());
-  } else if (pos < 0) {
+
+    if (pos >= 0) {
+      string encoded_obj_str = req.substr(pos+1);
+      s->object_str = encoded_obj_str;
+
+      if (s->object_str.size() > 0) {
+        s->object = strdup(s->object_str.c_str());
+      }
+    }
+  } else {
     s->object_str = req_name;
     s->object = strdup(s->object_str.c_str());
-  } else {
-    string encoded_obj_str = req.substr(pos+1);
-    s->object_str = encoded_obj_str;
-
-    if (s->object_str.size() > 0) {
-      s->object = strdup(s->object_str.c_str());
-    }
   }
   return 0;
 }
