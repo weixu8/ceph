@@ -163,8 +163,8 @@ protected:
   virtual RGWOp *get_post_op() = 0;
   virtual RGWOp *get_copy_op() = 0;
 
-  virtual int validate_bucket_name(const char *bucket);
-  virtual int validate_object_name(const char *object);
+  virtual int validate_bucket_name(const string& bucket);
+  virtual int validate_object_name(const string& object);
 public:
   RGWHandler_REST() {}
   virtual ~RGWHandler_REST() {}

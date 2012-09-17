@@ -547,9 +547,9 @@ static int init_meta_info(struct req_state *s)
 
 // This function enforces Amazon's spec for bucket names.
 // (The requirements, not the recommendations.)
-int RGWHandler_REST::validate_bucket_name(const char *bucket)
+int RGWHandler_REST::validate_bucket_name(const string& bucket)
 {
-  int len = strlen(bucket);
+  int len = bucket.size();
   if (len < 3) {
     if (len == 0) {
       // This request doesn't specify a bucket at all
@@ -570,15 +570,15 @@ int RGWHandler_REST::validate_bucket_name(const char *bucket)
 // is at most 1024 bytes long."
 // However, we can still have control characters and other nasties in there.
 // Just as long as they're utf-8 nasties.
-int RGWHandler_REST::validate_object_name(const char *object)
+int RGWHandler_REST::validate_object_name(const string& object)
 {
-  int len = s->object_str.size();
+  int len = object.size();
   if (len > 1024) {
     // Name too long
     return -ERR_INVALID_OBJECT_NAME;
   }
 
-  if (check_utf8(s->object, len)) {
+  if (check_utf8(object.c_str(), len)) {
     // Object names must be valid UTF-8.
     return -ERR_INVALID_OBJECT_NAME;
   }

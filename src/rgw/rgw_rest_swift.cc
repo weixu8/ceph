@@ -598,22 +598,27 @@ bool RGWHandler_REST_SWIFT::filter_request(struct req_state *s)
   return true;
 }
 
-int RGWHandler_REST_SWIFT::validate_bucket_name(const char *bucket)
+int RGWHandler_REST_SWIFT::validate_bucket_name(const string& bucket)
 {
   int ret = RGWHandler_REST::validate_bucket_name(bucket);
   if (ret < 0)
     return ret;
 
-  int len = strlen(bucket);
+  int len = bucket.size();
 
-  if (*bucket == '.')
+  if (len == 0)
+    return 0;
+
+  if (bucket[0] == '.')
     return -ERR_INVALID_BUCKET_NAME;
 
-  if (check_utf8(bucket, len))
+  if (check_utf8(bucket.c_str(), len))
     return -ERR_INVALID_UTF8;
 
-  for (int i = 0; i < len; ++i) {
-    if ((unsigned char)bucket[i] == 0xff)
+  const char *s = bucket.c_str();
+
+  for (int i = 0; i < len; ++i, ++s) {
+    if (*s == 0xff)
       return -ERR_INVALID_BUCKET_NAME;
   }
 
@@ -741,7 +746,7 @@ int RGWHandler_REST_SWIFT::init_from_header(struct req_state *s)
   return 0;
 }
 
-int RGWHandler_REST_SWIFT::init(struct req_state *state, FCGX_Request *fcgx)
+int RGWHandler_REST_SWIFT::init(struct req_state *s, FCGX_Request *fcgx)
 {
   int ret = init_from_header(s);
   if (ret < 0)
@@ -756,9 +761,9 @@ int RGWHandler_REST_SWIFT::init(struct req_state *state, FCGX_Request *fcgx)
   if (ret)
     return ret;
 
-  state->copy_source = state->env->get("HTTP_X_COPY_FROM");
+  s->copy_source = s->env->get("HTTP_X_COPY_FROM");
 
-  state->dialect = "swift";
+  s->dialect = "swift";
 
-  return RGWHandler_REST::init(state, fcgx);
+  return RGWHandler_REST::init(s, fcgx);
 }

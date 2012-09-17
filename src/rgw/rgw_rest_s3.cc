@@ -829,18 +829,21 @@ static bool looks_like_ip_address(const char *bucket)
   return (num_periods == 3);
 }
 
-int RGWHandler_REST_S3::validate_bucket_name(const char *bucket)
+int RGWHandler_REST_S3::validate_bucket_name(const string& bucket)
 {
   int ret = RGWHandler_REST::validate_bucket_name(bucket);
   if (ret < 0)
     return ret;
+
+  if (bucket.size() == 0)
+    return 0;
 
   if (!(isalpha(bucket[0]) || isdigit(bucket[0]))) {
     // bucket names must start with a number or letter
     return -ERR_INVALID_BUCKET_NAME;
   }
 
-  for (const char *s = bucket; *s; ++s) {
+  for (const char *s = bucket.c_str(); *s; ++s) {
     char c = *s;
     if (isdigit(c) || (c == '.'))
       continue;
@@ -852,13 +855,13 @@ int RGWHandler_REST_S3::validate_bucket_name(const char *bucket)
     return -ERR_INVALID_BUCKET_NAME;
   }
 
-  if (looks_like_ip_address(bucket))
+  if (looks_like_ip_address(bucket.c_str()))
     return -ERR_INVALID_BUCKET_NAME;
 
   return 0;
 }
 
-int RGWHandler_REST_S3::init(struct req_state *state, FCGX_Request *fcgx)
+int RGWHandler_REST_S3::init(struct req_state *s, FCGX_Request *fcgx)
 {
   int ret = init_from_header(s);
   if (ret < 0)
@@ -866,22 +869,22 @@ int RGWHandler_REST_S3::init(struct req_state *state, FCGX_Request *fcgx)
 
   dout(10) << "s->object=" << (s->object ? s->object : "<NULL>") << " s->bucket=" << (s->bucket_name ? s->bucket_name : "<NULL>") << dendl;
 
-  ret = validate_bucket_name(s->bucket_name_str.c_str());
+  ret = validate_bucket_name(s->bucket_name_str);
   if (ret)
     return ret;
-  ret = validate_object_name(s->object_str.c_str());
+  ret = validate_object_name(s->object_str);
   if (ret)
     return ret;
 
-  const char *cacl = state->env->get("HTTP_X_AMZ_ACL");
+  const char *cacl = s->env->get("HTTP_X_AMZ_ACL");
   if (cacl)
-    state->canned_acl = cacl;
+    s->canned_acl = cacl;
 
-  state->copy_source = state->env->get("HTTP_X_AMZ_COPY_SOURCE");
+  s->copy_source = s->env->get("HTTP_X_AMZ_COPY_SOURCE");
 
-  state->dialect = "s3";
+  s->dialect = "s3";
 
-  return RGWHandler_REST::init(state, fcgx);
+  return RGWHandler_REST::init(s, fcgx);
 }
 
 /*

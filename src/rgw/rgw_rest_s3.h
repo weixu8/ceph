@@ -185,7 +185,7 @@ public:
   virtual ~RGWHandler_REST_S3() {}
 
   bool filter_request(struct req_state *state) { return true; }
-  int validate_bucket_name(const char *bucket);
+  int validate_bucket_name(const string& bucket);
 
   virtual int init(struct req_state *state, FCGX_Request *fcgx);
   int authorize();

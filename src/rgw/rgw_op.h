@@ -659,8 +659,8 @@ protected:
   struct req_state *s;
 
   int do_read_permissions(RGWOp *op, bool only_bucket);
-  virtual int validate_bucket_name(const char *bucket) = 0;
-  virtual int validate_object_name(const char *object) = 0;
+  virtual int validate_bucket_name(const string& bucket) = 0;
+  virtual int validate_object_name(const string& object) = 0;
 public:
   RGWHandler() {}
   virtual ~RGWHandler();
