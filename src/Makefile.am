@@ -1245,6 +1245,7 @@ libmds_a_SOURCES = \
 	mds/MDSTableServer.cc \
 	mds/AnchorServer.cc \
 	mds/AnchorClient.cc \
+	mds/SnapRealm.cc \
 	mds/SnapServer.cc \
 	mds/snap.cc \
 	mds/SessionMap.cc \
@@ -1551,6 +1552,7 @@ noinst_HEADERS = \
         mds/SessionMap.h\
         mds/SimpleLock.h\
         mds/SnapClient.h\
+	mds/SnapRealm.h\
         mds/SnapServer.h\
         mds/events/ECommitted.h\
         mds/events/EExport.h\
