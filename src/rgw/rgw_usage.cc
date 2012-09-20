@@ -129,3 +129,8 @@ int RGWUsage::show(RGWRados *store, string& uid, uint64_t start_epoch,
   return 0;
 }
 
+int RGWUsage::trim(RGWRados *store, string& uid, uint64_t start_epoch,
+		   uint64_t end_epoch)
+{
+  return store->trim_usage(uid, start_epoch, end_epoch);
+}

@@ -1556,7 +1556,7 @@ next:
     parse_date(start_date, &start_epoch);
     parse_date(end_date, &end_epoch);
 
-    int ret = rgwstore->trim_usage(user_id, start_epoch, end_epoch);
+    int ret = RGWUsage::trim(rgwstore, user_id, start_epoch, end_epoch);
     if (ret < 0) {
       cerr << "ERROR: read_usage() returned ret=" << ret << std::endl;
       return 1;
