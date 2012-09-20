@@ -622,7 +622,7 @@ int RGWHandler_ObjStore_SWIFT::validate_bucket_name(const string& bucket)
   const char *s = bucket.c_str();
 
   for (int i = 0; i < len; ++i, ++s) {
-    if (*s == 0xff)
+    if (*(unsigned char *)s == 0xff)
       return -ERR_INVALID_BUCKET_NAME;
   }
 
