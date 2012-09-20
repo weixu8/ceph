@@ -33,7 +33,6 @@ public:
 };
 
 class RGWRESTMgr_SWIFT_Auth : public RGWRESTMgr {
-  RGWHandler_SWIFT_Auth handler;
 public:
   RGWRESTMgr_SWIFT_Auth() {}
   virtual ~RGWRESTMgr_SWIFT_Auth() {}
@@ -42,7 +41,7 @@ public:
     return this;
   }
   virtual RGWHandler *get_handler(struct req_state *s) {
-    return &handler;
+    return new RGWHandler_SWIFT_Auth;
   }
 };
 

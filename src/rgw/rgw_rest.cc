@@ -674,13 +674,6 @@ int RGWHandler_ObjStore::read_permissions(RGWOp *op_obj)
   return do_read_permissions(op_obj, only_bucket);
 }
 
-RGWRESTMgr::RGWRESTMgr()
-{
-  register_default_mgr(new RGWRESTMgr_S3);
-  register_resource("/swift", new RGWRESTMgr_SWIFT);
-  register_resource("/auth", new RGWRESTMgr_SWIFT_Auth);
-}
-
 void RGWRESTMgr::register_resource(string resource, RGWRESTMgr *mgr)
 {
   if (resource[resource.size() - 1] != '/')
@@ -697,8 +690,12 @@ void RGWRESTMgr::register_default_mgr(RGWRESTMgr *mgr)
 
 RGWRESTMgr *RGWRESTMgr::get_resource_mgr(struct req_state *s, const string& uri)
 {
+  if (resources_by_size.empty())
+    return NULL;
+
   map<size_t, string>::iterator iter = resources_by_size.end();
   do {
+    --iter;
     string& resource = iter->second;
     if (uri.compare(0, iter->first, resource) == 0) {
       string suffix = resource.substr(resource.size() + 1);
@@ -777,4 +774,8 @@ RGWHandler *RGWREST::get_handler(struct req_state *s, RGWClientIO *cio,
   return handler;
 }
 
-
+RGWREST::RGWREST() {
+  mgr.register_default_mgr(new RGWRESTMgr_S3);
+  mgr.register_resource("/swift", new RGWRESTMgr_SWIFT);
+  mgr.register_resource("/auth", new RGWRESTMgr_SWIFT_Auth);
+}

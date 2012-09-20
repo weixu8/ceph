@@ -164,8 +164,9 @@ public:
 };
 
 class RGWHandler_ObjStore_S3 : public RGWHandler_ObjStore {
+  friend class RGWRESTMgr_S3;
 protected:
-  int init_from_header(struct req_state *s);
+  static int init_from_header(struct req_state *s);
 public:
   RGWHandler_ObjStore_S3() : RGWHandler_ObjStore() {}
   virtual ~RGWHandler_ObjStore_S3() {}
@@ -226,9 +227,6 @@ public:
 };
 
 class RGWRESTMgr_S3 : public RGWRESTMgr {
-  RGWHandler_ObjStore_Service_S3 service_handler;
-  RGWHandler_ObjStore_Bucket_S3 bucket_handler;
-  RGWHandler_ObjStore_Obj_S3 obj_handler;
 public:
   RGWRESTMgr_S3() {}
   virtual ~RGWRESTMgr_S3() {}

@@ -183,14 +183,16 @@ protected:
   map<size_t, string> resources_by_size;
   RGWRESTMgr *default_mgr;
 
+public:
+  RGWRESTMgr() : default_mgr(NULL) {}
+  virtual ~RGWRESTMgr();
+
   void register_resource(string resource, RGWRESTMgr *mgr);
   void register_default_mgr(RGWRESTMgr *mgr);
-public:
-  RGWRESTMgr();
-  virtual ~RGWRESTMgr();
 
   virtual RGWRESTMgr *get_resource_mgr(struct req_state *s, const string& uri);
   virtual RGWHandler *get_handler(struct req_state *s) { return NULL; }
+  virtual void put_handler(RGWHandler *handler) { delete handler; }
 };
 
 class RGWREST {
@@ -198,8 +200,12 @@ class RGWREST {
 
   static int preprocess(struct req_state *s, RGWClientIO *cio);
 public:
+  RGWREST();
   RGWHandler *get_handler(struct req_state *s, RGWClientIO *cio,
 			  int *init_error);
+  void put_handler(RGWHandler *handler) {
+    mgr.put_handler(handler);
+  }
 };
 
 extern void set_req_state_err(struct req_state *s, int err_no);

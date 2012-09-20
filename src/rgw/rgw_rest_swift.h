@@ -127,12 +127,13 @@ public:
 };
 
 class RGWHandler_ObjStore_SWIFT : public RGWHandler_ObjStore {
+  friend class RGWRESTMgr_SWIFT;
 protected:
   virtual bool is_acl_op() {
     return false;
   }
 
-  int init_from_header(struct req_state *s);
+  static int init_from_header(struct req_state *s);
 public:
   RGWHandler_ObjStore_SWIFT() {}
   virtual ~RGWHandler_ObjStore_SWIFT() {}
@@ -191,9 +192,6 @@ public:
 };
 
 class RGWRESTMgr_SWIFT : public RGWRESTMgr {
-  RGWHandler_ObjStore_Service_SWIFT service_handler;
-  RGWHandler_ObjStore_Bucket_SWIFT bucket_handler;
-  RGWHandler_ObjStore_Obj_SWIFT obj_handler;
 public:
   RGWRESTMgr_SWIFT() {}
   virtual ~RGWRESTMgr_SWIFT() {}

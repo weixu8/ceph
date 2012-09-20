@@ -898,13 +898,9 @@ int RGWHandler_ObjStore_S3::validate_bucket_name(const string& bucket)
 
 int RGWHandler_ObjStore_S3::init(struct req_state *s, RGWClientIO *cio)
 {
-  int ret = init_from_header(s);
-  if (ret < 0)
-    return ret;
-
   dout(10) << "s->object=" << (s->object ? s->object : "<NULL>") << " s->bucket=" << (s->bucket_name ? s->bucket_name : "<NULL>") << dendl;
 
-  ret = validate_bucket_name(s->bucket_name_str);
+  int ret = validate_bucket_name(s->bucket_name_str);
   if (ret)
     return ret;
   ret = validate_object_name(s->object_str);
@@ -1150,9 +1146,15 @@ int RGWHandler_ObjStore_S3::authorize()
 
 RGWHandler *RGWRESTMgr_S3::get_handler(struct req_state *s)
 {
+  int ret = RGWHandler_ObjStore_S3::init_from_header(s);
+  if (ret < 0)
+    return NULL;
+
   if (!s->bucket_name)
-    return &service_handler;
+    return new RGWHandler_ObjStore_Service_S3;
+
   if (!s->object)
-    return &bucket_handler;
-  return &obj_handler;
+    return new RGWHandler_ObjStore_Bucket_S3;
+
+  return new RGWHandler_ObjStore_Obj_S3;
 }

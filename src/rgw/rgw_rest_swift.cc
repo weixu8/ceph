@@ -755,13 +755,9 @@ int RGWHandler_ObjStore_SWIFT::init_from_header(struct req_state *s)
 
 int RGWHandler_ObjStore_SWIFT::init(struct req_state *s, RGWClientIO *cio)
 {
-  int ret = init_from_header(s);
-  if (ret < 0)
-    return ret;
-
   dout(10) << "s->object=" << (s->object ? s->object : "<NULL>") << " s->bucket=" << (s->bucket_name ? s->bucket_name : "<NULL>") << dendl;
 
-  ret = validate_bucket_name(s->bucket_name_str.c_str());
+  int ret = validate_bucket_name(s->bucket_name_str.c_str());
   if (ret)
     return ret;
   ret = validate_object_name(s->object_str.c_str());
@@ -778,9 +774,14 @@ int RGWHandler_ObjStore_SWIFT::init(struct req_state *s, RGWClientIO *cio)
 
 RGWHandler *RGWRESTMgr_SWIFT::get_handler(struct req_state *s)
 {
+  int ret = RGWHandler_ObjStore_SWIFT::init_from_header(s);
+  if (ret < 0)
+    return NULL;
+
   if (!s->bucket_name)
-    return &service_handler;
+    return new RGWHandler_ObjStore_Service_SWIFT;
   if (!s->object)
-    return &bucket_handler;
-  return &obj_handler;
+    return new RGWHandler_ObjStore_Bucket_SWIFT;
+
+  return new RGWHandler_ObjStore_Obj_SWIFT;
 }
