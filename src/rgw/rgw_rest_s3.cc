@@ -647,100 +647,123 @@ void RGWDeleteMultiObj_ObjStore_S3::end_response()
   rgw_flush_formatter_and_reset(s, s->formatter);
 }
 
-RGWOp *RGWHandler_ObjStore_S3::get_obj_op(bool get_data)
+RGWOp *RGWHandler_ObjStore_Service_S3::op_get()
 {
-  if (is_acl_op()) {
-    return new RGWGetACLs_ObjStore_S3;
-  }
-  if (s->object) {
-    RGWGetObj_ObjStore_S3 *get_obj_op = new RGWGetObj_ObjStore_S3;
-    get_obj_op->set_get_data(get_data);
-    return get_obj_op;
-  } else if (!s->bucket_name) {
-    return NULL;
-  }
+  return new RGWListBuckets_ObjStore_S3;
+}
 
-  if (s->args.exists("uploads"))
-    return new RGWListBucketMultiparts_ObjStore_S3;
+RGWOp *RGWHandler_ObjStore_Service_S3::op_head()
+{
+  return new RGWListBuckets_ObjStore_S3;
+}
 
+RGWOp *RGWHandler_ObjStore_Bucket_S3::get_obj_op(bool get_data)
+{
   if (get_data)
     return new RGWListBucket_ObjStore_S3;
   else
     return new RGWStatBucket_ObjStore_S3;
 }
 
-RGWOp *RGWHandler_ObjStore_S3::op_get()
+RGWOp *RGWHandler_ObjStore_Bucket_S3::op_get()
 {
-  if (s->bucket_name) {
-    if (is_acl_op()) {
-      return new RGWGetACLs_ObjStore_S3;
-    } else if (s->args.exists("uploadId")) {
-      return new RGWListMultipart_ObjStore_S3;
-    }
-    return get_obj_op(true);
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_S3;
+  } else if (s->args.exists("uploadId")) {
+    return new RGWListMultipart_ObjStore_S3;
   }
-
-  return new RGWListBuckets_ObjStore_S3;
+  return get_obj_op(true);
 }
 
-RGWOp *RGWHandler_ObjStore_S3::op_head()
+RGWOp *RGWHandler_ObjStore_Bucket_S3::op_head()
 {
-  if (s->bucket_name) {
-    if (is_acl_op()) {
-      return new RGWGetACLs_ObjStore_S3;
-    } else if (s->args.exists("uploadId")) {
-      return new RGWListMultipart_ObjStore_S3;
-    }
-    return get_obj_op(false);
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_S3;
+  } else if (s->args.exists("uploadId")) {
+    return new RGWListMultipart_ObjStore_S3;
   }
-
-  return new RGWListBuckets_ObjStore_S3;
+  return get_obj_op(false);
 }
 
-RGWOp *RGWHandler_ObjStore_S3::op_put()
+RGWOp *RGWHandler_ObjStore_Bucket_S3::op_put()
 {
   if (is_acl_op()) {
     return new RGWPutACLs_ObjStore_S3;
-  } else if (s->object) {
-    if (!s->copy_source)
-      return new RGWPutObj_ObjStore_S3;
-    else
-      return new RGWCopyObj_ObjStore_S3;
-  } else if (s->bucket_name) {
-    return new RGWCreateBucket_ObjStore_S3;
   }
-
-  return NULL;
+  return new RGWCreateBucket_ObjStore_S3;
 }
 
-RGWOp *RGWHandler_ObjStore_S3::op_delete()
+RGWOp *RGWHandler_ObjStore_Bucket_S3::op_delete()
 {
-  string upload_id = s->args.get("uploadId");
-
-  if (s->object) {
-    if (upload_id.empty())
-      return new RGWDeleteObj_ObjStore_S3;
-    else
-      return new RGWAbortMultipart_ObjStore_S3;
-  } else if (s->bucket_name)
-    return new RGWDeleteBucket_ObjStore_S3;
-
-  return NULL;
+  return new RGWDeleteBucket_ObjStore_S3;
 }
 
-RGWOp *RGWHandler_ObjStore_S3::op_post()
+RGWOp *RGWHandler_ObjStore_Bucket_S3::op_post()
 {
-  if (s->object) {
-    if (s->args.exists("uploadId"))
-      return new RGWCompleteMultipart_ObjStore_S3;
-    else
-      return new RGWInitMultipart_ObjStore_S3;
-  }
-  else if ( s->request_params == "delete" ) {
+  if ( s->request_params == "delete" ) {
     return new RGWDeleteMultiObj_ObjStore_S3;
   }
 
   return NULL;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::get_obj_op(bool get_data)
+{
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_S3;
+  }
+  RGWGetObj_ObjStore_S3 *get_obj_op = new RGWGetObj_ObjStore_S3;
+  get_obj_op->set_get_data(get_data);
+  return get_obj_op;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::op_get()
+{
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_S3;
+  } else if (s->args.exists("uploadId")) {
+    return new RGWListMultipart_ObjStore_S3;
+  }
+  return get_obj_op(true);
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::op_head()
+{
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_S3;
+  } else if (s->args.exists("uploadId")) {
+    return new RGWListMultipart_ObjStore_S3;
+  }
+  return get_obj_op(false);
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::op_put()
+{
+  if (is_acl_op()) {
+    return new RGWPutACLs_ObjStore_S3;
+  }
+  if (!s->copy_source)
+    return new RGWPutObj_ObjStore_S3;
+  else
+    return new RGWCopyObj_ObjStore_S3;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::op_delete()
+{
+  string upload_id = s->args.get("uploadId");
+
+  if (upload_id.empty())
+    return new RGWDeleteObj_ObjStore_S3;
+  else
+    return new RGWAbortMultipart_ObjStore_S3;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_S3::op_post()
+{
+  if (s->args.exists("uploadId"))
+    return new RGWCompleteMultipart_ObjStore_S3;
+  else
+    return new RGWInitMultipart_ObjStore_S3;
 }
 
 int RGWHandler_ObjStore_S3::init_from_header(struct req_state *s)
@@ -1125,4 +1148,11 @@ int RGWHandler_ObjStore_S3::authorize()
   return  0;
 }
 
-
+RGWHandler *RGWRESTMgr_S3::get_handler(struct req_state *s)
+{
+  if (!s->bucket_name)
+    return &service_handler;
+  if (!s->object)
+    return &bucket_handler;
+  return &obj_handler;
+}

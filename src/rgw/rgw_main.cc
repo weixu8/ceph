@@ -247,7 +247,7 @@ static int call_log_intent(void *ctx, rgw_obj& obj, RGWIntentEvent intent)
 void RGWProcess::handle_request(RGWRequest *req)
 {
   FCGX_Request *fcgx = &req->fcgx;
-  RGWRESTMgr rest;
+  RGWREST rest;
   int ret;
   RGWEnv rgw_env;
   RGWFCGX client_io(fcgx);

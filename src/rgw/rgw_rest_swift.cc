@@ -485,18 +485,20 @@ send_data:
   return 0;
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::get_obj_op(bool get_data)
+RGWOp *RGWHandler_ObjStore_Service_SWIFT::op_get()
+{
+  return new RGWListBuckets_ObjStore_SWIFT;
+}
+
+RGWOp *RGWHandler_ObjStore_Service_SWIFT::op_head()
+{
+  return new RGWStatAccount_ObjStore_SWIFT;
+}
+
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::get_obj_op(bool get_data)
 {
   if (is_acl_op()) {
     return new RGWGetACLs_ObjStore_SWIFT;
-  }
-
-  if (s->object) {
-    RGWGetObj_ObjStore_SWIFT *get_obj_op = new RGWGetObj_ObjStore_SWIFT;
-    get_obj_op->set_get_data(get_data);
-    return get_obj_op;
-  } else if (!s->bucket_name) {
-    return NULL;
   }
 
   if (get_data)
@@ -505,67 +507,91 @@ RGWOp *RGWHandler_ObjStore_SWIFT::get_obj_op(bool get_data)
     return new RGWStatBucket_ObjStore_SWIFT;
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_get()
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::op_get()
 {
-  if (s->bucket_name) {
-    if (is_acl_op()) {
-      return new RGWGetACLs_ObjStore_SWIFT;
-    }
-    return get_obj_op(true);
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_SWIFT;
   }
-
-  return new RGWListBuckets_ObjStore_SWIFT;
+  return get_obj_op(true);
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_head()
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::op_head()
 {
-  if (s->bucket_name) {
-    if (is_acl_op()) {
-      return new RGWGetACLs_ObjStore_SWIFT;
-    }
-    return get_obj_op(false);
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_SWIFT;
   }
-
-  return new RGWStatAccount_ObjStore_SWIFT;
+  return get_obj_op(false);
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_put()
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::op_put()
 {
   if (is_acl_op()) {
     return new RGWPutACLs_ObjStore_SWIFT;
-  } else if (s->object) {
-    if (!s->copy_source)
-      return new RGWPutObj_ObjStore_SWIFT;
-    else
-      return new RGWCopyObj_ObjStore_SWIFT;
-  } else if (s->bucket_name) {
-    return new RGWCreateBucket_ObjStore_SWIFT;
   }
-
-  return NULL;
+  return new RGWCreateBucket_ObjStore_SWIFT;
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_delete()
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::op_delete()
 {
-  if (s->object)
-    return new RGWDeleteObj_ObjStore_SWIFT;
-  else if (s->bucket_name)
-    return new RGWDeleteBucket_ObjStore_SWIFT;
-
-  return NULL;
+  return new RGWDeleteBucket_ObjStore_SWIFT;
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_post()
+RGWOp *RGWHandler_ObjStore_Bucket_SWIFT::op_post()
 {
   return new RGWPutMetadata_ObjStore_SWIFT;
 }
 
-RGWOp *RGWHandler_ObjStore_SWIFT::op_copy()
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::get_obj_op(bool get_data)
 {
-  if (s->object)
-    return new RGWCopyObj_ObjStore_SWIFT;
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_SWIFT;
+  }
 
-  return NULL;
+  RGWGetObj_ObjStore_SWIFT *get_obj_op = new RGWGetObj_ObjStore_SWIFT;
+  get_obj_op->set_get_data(get_data);
+  return get_obj_op;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_get()
+{
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_SWIFT;
+  }
+  return get_obj_op(true);
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_head()
+{
+  if (is_acl_op()) {
+    return new RGWGetACLs_ObjStore_SWIFT;
+  }
+  return get_obj_op(false);
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_put()
+{
+  if (is_acl_op()) {
+    return new RGWPutACLs_ObjStore_SWIFT;
+  }
+  if (!s->copy_source)
+    return new RGWPutObj_ObjStore_SWIFT;
+  else
+    return new RGWCopyObj_ObjStore_SWIFT;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_delete()
+{
+  return new RGWDeleteObj_ObjStore_SWIFT;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_post()
+{
+  return new RGWPutMetadata_ObjStore_SWIFT;
+}
+
+RGWOp *RGWHandler_ObjStore_Obj_SWIFT::op_copy()
+{
+  return new RGWCopyObj_ObjStore_SWIFT;
 }
 
 int RGWHandler_ObjStore_SWIFT::authorize()
@@ -577,29 +603,6 @@ int RGWHandler_ObjStore_SWIFT::authorize()
   s->perm_mask = RGW_PERM_FULL_CONTROL;
 
   return 0;
-}
-
-bool RGWHandler_ObjStore_SWIFT::filter_request(struct req_state *s)
-{
-  string& uri = s->decoded_uri;
-  size_t len = g_conf->rgw_swift_url_prefix.size();
-
-  if (uri.size() < len + 1)
-    return false;
-
-  if (uri[0] != '/')
-    return false;
-
-  if (uri.substr(1, len) != g_conf->rgw_swift_url_prefix)
-    return false;
-
-  if (uri.size() == len + 1)
-    return true;
-
-  if (uri[len] != '/')
-    return false;
-
-  return true;
 }
 
 int RGWHandler_ObjStore_SWIFT::validate_bucket_name(const string& bucket)
@@ -770,4 +773,14 @@ int RGWHandler_ObjStore_SWIFT::init(struct req_state *s, RGWClientIO *cio)
   s->dialect = "swift";
 
   return RGWHandler_ObjStore::init(s, cio);
+}
+
+
+RGWHandler *RGWRESTMgr_SWIFT::get_handler(struct req_state *s)
+{
+  if (!s->bucket_name)
+    return &service_handler;
+  if (!s->object)
+    return &bucket_handler;
+  return &obj_handler;
 }
