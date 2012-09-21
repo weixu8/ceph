@@ -1163,6 +1163,7 @@ libcommon_files = \
 	osd/osd_types.cc \
 	mds/MDSMap.cc \
 	mds/inode_backtrace.cc \
+	mds/mdstypes.cc \
 	common/blkdev.cc \
 	common/common_init.cc \
 	common/pipe.c \
@@ -1234,7 +1235,6 @@ libmds_a_SOURCES = \
 	mds/Server.cc \
 	mds/Mutation.cc \
 	mds/MDCache.cc \
-	mds/mdstypes.cc \
 	mds/Locker.cc \
 	mds/Migrator.cc \
 	mds/MDBalancer.cc \
