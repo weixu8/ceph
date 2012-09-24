@@ -151,7 +151,7 @@ Session *Server::get_session(Message *m)
 {
   Session *session = (Session *)m->get_connection()->get_priv();
   if (session) {
-    dout(20) << "get_session have " << session << " " << session->inst
+    dout(20) << "get_session have " << session << " " << session->info.inst
 	     << " state " << session->get_state_name() << dendl;
     session->put();  // not carry ref
   } else {
@@ -252,7 +252,7 @@ void Server::handle_client_session(MClientSession *m)
 void Server::_session_logged(Session *session, uint64_t state_seq, bool open, version_t pv,
 			     interval_set<inodeno_t>& inos, version_t piv)
 {
-  dout(10) << "_session_logged " << session->inst << " state_seq " << state_seq << " " << (open ? "open":"close")
+  dout(10) << "_session_logged " << session->info.inst << " state_seq " << state_seq << " " << (open ? "open":"close")
 	   << " " << pv << dendl;
 
   // apply
@@ -263,7 +263,7 @@ void Server::_session_logged(Session *session, uint64_t state_seq, bool open, ve
   } else if (open) {
     assert(session->is_opening());
     mds->sessionmap.set_state(session, Session::STATE_OPEN);
-    mds->messenger->send_message(new MClientSession(CEPH_SESSION_OPEN), session->inst);
+    mds->messenger->send_message(new MClientSession(CEPH_SESSION_OPEN), session->info.inst);
   } else if (session->is_closing() ||
 	     session->is_killing()) {
     // kill any lingering capabilities, leases, requests
@@ -271,7 +271,7 @@ void Server::_session_logged(Session *session, uint64_t state_seq, bool open, ve
       Capability *cap = session->caps.front();
       CInode *in = cap->get_inode();
       dout(20) << " killing capability " << ccap_string(cap->issued()) << " on " << *in << dendl;
-      mds->locker->remove_client_cap(in, session->inst.name.num());
+      mds->locker->remove_client_cap(in, session->info.inst.name.num());
     }
     while (!session->leases.empty()) {
       ClientLease *r = session->leases.front();
@@ -293,7 +293,7 @@ void Server::_session_logged(Session *session, uint64_t state_seq, bool open, ve
       session->clear();
     } else if (session->is_killing()) {
       // destroy session, close connection
-      mds->messenger->mark_down(session->inst.addr); 
+      mds->messenger->mark_down(session->info.inst.addr); 
       mds->sessionmap.remove_session(session);
     } else {
       assert(0);
@@ -344,14 +344,14 @@ void Server::finish_force_open_sessions(map<client_t,entity_inst_t>& cm,
     if (sseqmap.count(p->first)) {
       uint64_t sseq = sseqmap[p->first];
       if (session->get_state_seq() != sseq) {
-	dout(10) << "force_open_sessions skipping changed " << session->inst << dendl;
+	dout(10) << "force_open_sessions skipping changed " << session->info.inst << dendl;
       } else {
-	dout(10) << "force_open_sessions opened " << session->inst << dendl;
+	dout(10) << "force_open_sessions opened " << session->info.inst << dendl;
 	mds->sessionmap.set_state(session, Session::STATE_OPEN);
-	mds->messenger->send_message(new MClientSession(CEPH_SESSION_OPEN), session->inst);
+	mds->messenger->send_message(new MClientSession(CEPH_SESSION_OPEN), session->info.inst);
       }
     } else {
-      dout(10) << "force_open_sessions skipping already-open " << session->inst << dendl;
+      dout(10) << "force_open_sessions skipping already-open " << session->info.inst << dendl;
       assert(session->is_open() || session->is_stale());
     }
     session->dec_importing();
@@ -401,14 +401,14 @@ void Server::find_idle_sessions()
   while (1) {
     Session *session = mds->sessionmap.get_oldest_session(Session::STATE_OPEN);
     if (!session) break;
-    dout(20) << "laggiest active session is " << session->inst << dendl;
+    dout(20) << "laggiest active session is " << session->info.inst << dendl;
     if (session->last_cap_renew >= cutoff) {
-      dout(20) << "laggiest active session is " << session->inst << " and sufficiently new (" 
+      dout(20) << "laggiest active session is " << session->info.inst << " and sufficiently new (" 
 	       << session->last_cap_renew << ")" << dendl;
       break;
     }
 
-    dout(10) << "new stale session " << session->inst << " last " << session->last_cap_renew << dendl;
+    dout(10) << "new stale session " << session->info.inst << " last " << session->last_cap_renew << dendl;
     mds->sessionmap.set_state(session, Session::STATE_STALE);
     mds->locker->revoke_stale_caps(session);
     mds->locker->remove_stale_leases(session);
@@ -431,21 +431,21 @@ void Server::find_idle_sessions()
     if (!session)
       break;
     if (session->is_importing()) {
-      dout(10) << "stopping at importing session " << session->inst << dendl;
+      dout(10) << "stopping at importing session " << session->info.inst << dendl;
       break;
     }
     assert(session->is_stale());
     if (session->last_cap_renew >= cutoff) {
-      dout(20) << "oldest stale session is " << session->inst << " and sufficiently new (" 
+      dout(20) << "oldest stale session is " << session->info.inst << " and sufficiently new (" 
 	       << session->last_cap_renew << ")" << dendl;
       break;
     }
     
     utime_t age = now;
     age -= session->last_cap_renew;
-    mds->clog.info() << "closing stale session " << session->inst
+    mds->clog.info() << "closing stale session " << session->info.inst
 	<< " after " << age << "\n";
-    dout(10) << "autoclosing stale session " << session->inst << " last " << session->last_cap_renew << dendl;
+    dout(10) << "autoclosing stale session " << session->info.inst << " last " << session->last_cap_renew << dendl;
     kill_session(session);
   }
 }
@@ -473,7 +473,7 @@ void Server::journal_close_session(Session *session, int state)
   version_t pv = ++mds->sessionmap.projected;
   version_t piv = 0;
 
-  interval_set<inodeno_t> both = session->prealloc_inos;
+  interval_set<inodeno_t> both = session->info.prealloc_inos;
   both.insert(session->pending_prealloc_inos);
   if (both.size()) {
     mds->inotable->project_release_ids(both);
@@ -481,7 +481,7 @@ void Server::journal_close_session(Session *session, int state)
   } else
     piv = 0;
 
-  mdlog->start_submit_entry(new ESession(session->inst, false, pv, both, piv),
+  mdlog->start_submit_entry(new ESession(session->info.inst, false, pv, both, piv),
 			    new C_MDS_session_finish(mds, session, sseq, false, pv, both, piv));
   mdlog->flush();
 
@@ -550,13 +550,13 @@ void Server::handle_client_reconnect(MClientReconnect *m)
     mds->sessionmap.set_state(session, Session::STATE_OPENING);
     version_t pv = ++mds->sessionmap.projected;
     uint64_t sseq = session->get_state_seq();
-    mdlog->start_submit_entry(new ESession(session->inst, true, pv),
+    mdlog->start_submit_entry(new ESession(session->info.inst, true, pv),
 			      new C_MDS_session_finish(mds, session, sseq, true, pv));
     mdlog->flush();
-    mds->clog.debug() << "reconnect by new " << session->inst
+    mds->clog.debug() << "reconnect by new " << session->info.inst
 	<< " after " << delay << "\n";
   } else {
-    mds->clog.debug() << "reconnect by " << session->inst
+    mds->clog.debug() << "reconnect by " << session->info.inst
 	<< " after " << delay << "\n";
   }
   
@@ -656,7 +656,7 @@ void Server::reconnect_tick()
 	 p != client_reconnect_gather.end();
 	 p++) {
       Session *session = mds->sessionmap.get_session(entity_name_t::CLIENT(p->v));
-      dout(1) << "reconnect gave up on " << session->inst << dendl;
+      dout(1) << "reconnect gave up on " << session->info.inst << dendl;
       failed_reconnects++;
     }
     client_reconnect_gather.clear();
@@ -704,10 +704,10 @@ void Server::recall_client_state(float ratio)
        ++p) {
     Session *session = *p;
     if (!session->is_open() ||
-	!session->inst.name.is_client())
+	!session->info.inst.name.is_client())
       continue;
 
-    dout(10) << " session " << session->inst
+    dout(10) << " session " << session->info.inst
 	     << " caps " << session->caps.size()
 	     << ", leases " << session->leases.size()
 	     << dendl;
@@ -1685,13 +1685,13 @@ CInode* Server::prepare_new_inode(MDRequest *mdr, CDir *dir, inodeno_t useino, u
   CInode *in = new CInode(mdcache);
   
   // assign ino
-  if (mdr->session->prealloc_inos.size()) {
+  if (mdr->session->info.prealloc_inos.size()) {
     mdr->used_prealloc_ino = 
       in->inode.ino = mdr->session->take_ino(useino);  // prealloc -> used
     mds->sessionmap.projected++;
     dout(10) << "prepare_new_inode used_prealloc " << mdr->used_prealloc_ino
-	     << " (" << mdr->session->prealloc_inos
-	     << ", " << mdr->session->prealloc_inos.size() << " left)"
+	     << " (" << mdr->session->info.prealloc_inos
+	     << ", " << mdr->session->info.prealloc_inos.size() << " left)"
 	     << dendl;
   } else {
     mdr->alloc_ino = 
@@ -1796,12 +1796,12 @@ void Server::apply_allocated_inos(MDRequest *mdr)
   }
   if (mdr->prealloc_inos.size()) {
     session->pending_prealloc_inos.subtract(mdr->prealloc_inos);
-    session->prealloc_inos.insert(mdr->prealloc_inos);
+    session->info.prealloc_inos.insert(mdr->prealloc_inos);
     mds->sessionmap.version++;
     mds->inotable->apply_alloc_ids(mdr->prealloc_inos);
   }
   if (mdr->used_prealloc_ino) {
-    session->used_inos.erase(mdr->used_prealloc_ino);
+    session->info.used_inos.erase(mdr->used_prealloc_ino);
     mds->sessionmap.version++;
   }
 }
