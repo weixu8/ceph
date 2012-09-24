@@ -266,7 +266,7 @@ void Client::dump_cache()
   }
 }
 
-int Client::init() 
+int Client::init()
 {
   client_lock.Lock();
   assert(!initialized);
