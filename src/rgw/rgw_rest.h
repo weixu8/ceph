@@ -191,6 +191,8 @@ public:
     flusher.init(s);
   }
   virtual void send_response();
+  virtual int check_caps(RGWUserCaps& caps) { return -EPERM; } /* should to be implemented! */
+  virtual int verify_permission();
 };
 
 class RGWHandler_ObjStore : public RGWHandler {

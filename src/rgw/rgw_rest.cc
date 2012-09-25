@@ -630,6 +630,11 @@ void RGWRESTOp::send_response()
   flusher.flush();
 }
 
+int RGWRESTOp::verify_permission()
+{
+  return check_caps(s->user.caps);
+}
+
 static void line_unfold(const char *line, string& sdest)
 {
   char dest[strlen(line) + 1];
