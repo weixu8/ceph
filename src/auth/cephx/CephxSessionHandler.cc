@@ -114,52 +114,54 @@ int CephxSessionHandler::check_message_signature(Message *m)
   if (!sig_error.empty()) {
     ldout(cct, 0) << "error in encryption for checking message signature: " << sig_error << dendl;
     return (SESSION_SIGNATURE_FAILURE);
-  } else {
-      bufferlist::iterator ci = bl_ciphertext.begin();
-      uint32_t magic; 
-      uint64_t sig_check = 0;
-      // Skip the magic number at the front. PLR
-      try {
-        ::decode(magic, ci);
-      } catch (buffer::error& e) {
-        ldout(cct, 0) << "Failed to decode magic number on msg." << dendl;
-        return (SESSION_SIGNATURE_FAILURE);
+  } 
+
+    bufferlist::iterator ci = bl_ciphertext.begin();
+    uint32_t magic; 
+    uint64_t sig_check = 0;
+    // Skip the magic number at the front. PLR
+    try {
+      ::decode(magic, ci);
+    } catch (buffer::error& e) {
+      ldout(cct, 0) << "Failed to decode magic number on msg." << dendl;
+      return (SESSION_SIGNATURE_FAILURE);
+    }
+    try {
+      ::decode(sig_check, ci);
+    } catch (buffer::error& e) {
+      ldout(cct, 0) << "Failed to decode sig check on msg." << dendl;
+      return (SESSION_SIGNATURE_FAILURE);
+    }
+
+    // There's potentially an issue with whether the encoding and decoding done here will work
+    // properly when a big endian and little endian machine are talking.  We think it's OK,
+    // but it should be tested to be sure.  PLR
+
+    if (sig_check != footer.sig ) {
+      // Should have been signed, but signature check failed.  PLR
+      if (!(footer.flags & CEPH_MSG_FOOTER_SIGNED)) {
+        ldout(cct, 0) << "SIGN: MSG " << header.seq << " Sender did not set CEPH_MSG_FOOTER_SIGNED." << dendl;
       }
-      try {
-        ::decode(sig_check, ci);
-      } catch (buffer::error& e) {
-        ldout(cct, 0) << "Failed to decode sig check on msg." << dendl;
-        return (SESSION_SIGNATURE_FAILURE);
-      }
+      ldout(cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
+      ldout(cct, 0) << "SIGN: MSG " << header.seq << "Signature on message:" << dendl;
+      ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig: " << footer.sig << dendl;
+      ldout(cct, 0) << "SIGN: MSG " << header.seq << "Locally calculated signature:" << dendl;
+      ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig_check:" << sig_check << dendl;
 
-      // There's potentially an issue with whether the encoding and decoding done here will work
-      // properly when a big endian and little endian machine are talking.  We think it's OK,
-      // but it should be tested to be sure.  PLR
+      // For the moment, printing an error message to the log and returning failure is sufficient.
+      // In the long term, we should probably have code parsing the log looking for this kind
+      // of security failure, particularly when there are large numbers of them, since the latter
+      // is a potential sign of an attack.  PLR
 
-      if (sig_check != footer.sig ) {
-        // Should have been signed, but signature check failed.  PLR
-        if (!(footer.flags & CEPH_MSG_FOOTER_SIGNED)) {
-          ldout(cct, 0) << "SIGN: MSG " << header.seq << " Sender did not set CEPH_MSG_FOOTER_SIGNED." << dendl;
-        }
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << " Message signature does not match contents." << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "Signature on message:" << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig: " << footer.sig << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "Locally calculated signature:" << dendl;
-        ldout(cct, 0) << "SIGN: MSG " << header.seq << "    sig_check:" << sig_check << dendl;
+      signatures_failed++;
+      ldout(cct, 0) << "Signature failed." << dendl;
+      return (SESSION_SIGNATURE_FAILURE);
+    }
 
-        // For the moment, printing an error message to the log and returning failure is sufficient.
-        // In the long term, we should probably have code parsing the log looking for this kind
-        // of security failure, particularly when there are large numbers of them, since the latter
-        // is a potential sign of an attack.  PLR
+  // If we get here, the signature checked.  PLR
 
-        signatures_failed++;
-        ldout(cct, 0) << "Signature failed." << dendl;
-        return (SESSION_SIGNATURE_FAILURE);
-      }
-    // If we get here, the signature checked.  PLR
-    ldout(cct, 10) << "Signature matched." << dendl;
-    signatures_matched++;;
-  }
+  signatures_matched++;;
+
   return (0);
 }
 
