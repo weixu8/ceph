@@ -1969,6 +1969,7 @@ int FileStore::mount()
     LevelDBStore *omap_store = new LevelDBStore(omap_dir);
     stringstream err;
     if (omap_store->init(err)) {
+      delete omap_store;
       derr << "Error initializing leveldb: " << err.str() << dendl;
       ret = -1;
       goto close_current_fd;
@@ -1976,6 +1977,7 @@ int FileStore::mount()
     DBObjectMap *dbomap = new DBObjectMap(omap_store);
     ret = dbomap->init(do_update);
     if (ret < 0) {
+      delete dbomap;
       derr << "Error initializing DBObjectMap: " << ret << dendl;
       goto close_current_fd;
     }
@@ -1983,6 +1985,7 @@ int FileStore::mount()
 
     if (g_conf->filestore_debug_omap_check && !dbomap->check(err2)) {
       derr << err2.str() << dendl;;
+      delete dbomap;
       ret = -EINVAL;
       goto close_current_fd;
     }
