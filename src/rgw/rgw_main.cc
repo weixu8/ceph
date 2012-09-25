@@ -472,8 +472,8 @@ int main(int argc, const char **argv)
 
   if (apis_map.count("admin") > 0) {
     RGWRESTMgr_Admin *admin_resource = new RGWRESTMgr_Admin;
-    admin_resource->register_resource("/usage", new RGWRESTMgr_Usage);
-    rest.register_resource("/admin", admin_resource);
+    admin_resource->register_resource("usage", new RGWRESTMgr_Usage);
+    rest.register_resource(g_conf->rgw_admin_entry, admin_resource);
   }
 
   RGWProcess process(g_ceph_context, g_conf->rgw_thread_pool_size, &rest);

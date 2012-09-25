@@ -873,8 +873,10 @@ int RGWHandler_ObjStore::read_permissions(RGWOp *op_obj)
 
 void RGWRESTMgr::register_resource(string resource, RGWRESTMgr *mgr)
 {
-  resource_mgrs[resource] = mgr;
-  resources_by_size[resource.size()] = resource;
+  string r = "/";
+  r.append(resource);
+  resource_mgrs[r] = mgr;
+  resources_by_size[r.size()] = r;
 }
 
 void RGWRESTMgr::register_default_mgr(RGWRESTMgr *mgr)
