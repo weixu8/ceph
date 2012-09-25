@@ -1959,6 +1959,7 @@ int FileStore::mount()
       derr << "FileStore::mount: failed to create current/nosnap" << dendl;
       goto close_current_fd;
     }
+    TEMP_FAILURE_RETRY(r);
   } else {
     // clear nosnap marker, if present.
     ::unlink(nosnapfn);
