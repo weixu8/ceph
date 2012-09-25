@@ -478,7 +478,7 @@ int RGWGetObj_ObjStore_SWIFT::send_response(bufferlist& bl)
 
 send_data:
   if (get_data && !orig_ret) {
-    s->cio->print(bl.c_str(), len);
+    s->cio->write(bl.c_str(), len);
   }
   rgw_flush_formatter_and_reset(s, s->formatter);
 
