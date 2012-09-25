@@ -1284,10 +1284,16 @@ int FileStore::_test_fiemap()
     // write a large extent
     char buf[len];
     memset(buf, 1, sizeof(buf));
-    ::lseek(fd, off, SEEK_SET);
-    int r = safe_write(fd, buf, sizeof(buf));
+    int r = ::lseek(fd, off, SEEK_SET);
+    if (r < 0) {
+      derr << "_test_fiemap failed to lseek " << fn << ": " << cpp_strerror(-errno) << dendl;
+      ::close(fd);
+      return -errno;
+    }
+    r = safe_write(fd, buf, sizeof(buf));
     if (r < 0) {
       derr << "_test_fiemap failed to write to " << fn << ": " << cpp_strerror(r) << dendl;
+      ::close(fd);
       return r;
     }
   }
