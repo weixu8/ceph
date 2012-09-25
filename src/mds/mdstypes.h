@@ -1095,8 +1095,9 @@ public:
 
   void encode(bufferlist& bl) const;
   void decode(bufferlist::iterator& bl);
+  void dump(Formatter *f) const;
+  static void generate_test_instances(list<MDSCacheObjectInfo*>& ls);
 };
-
 WRITE_CLASS_ENCODER(MDSCacheObjectInfo)
 
 
