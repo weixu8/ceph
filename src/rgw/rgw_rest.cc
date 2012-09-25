@@ -876,7 +876,7 @@ void RGWRESTMgr::register_resource(string resource, RGWRESTMgr *mgr)
   string r = "/";
   r.append(resource);
   resource_mgrs[r] = mgr;
-  resources_by_size[r.size()] = r;
+  resources_by_size.insert(pair<size_t, string>(r.size(), r));
 }
 
 void RGWRESTMgr::register_default_mgr(RGWRESTMgr *mgr)
@@ -889,7 +889,7 @@ RGWRESTMgr *RGWRESTMgr::get_resource_mgr(struct req_state *s, const string& uri)
   if (resources_by_size.empty())
     return this;
 
-  map<size_t, string>::iterator iter = resources_by_size.end();
+  multimap<size_t, string>::iterator iter = resources_by_size.end();
   do {
     --iter;
     string& resource = iter->second;

@@ -224,7 +224,7 @@ class RGWHandler_ObjStore_S3;
 class RGWRESTMgr {
 protected:
   map<string, RGWRESTMgr *> resource_mgrs;
-  map<size_t, string> resources_by_size;
+  multimap<size_t, string> resources_by_size;
   RGWRESTMgr *default_mgr;
 
 public:
